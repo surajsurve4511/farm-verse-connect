@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GetOrderStatus } from "@/lib/utils";
+import { getOrderStatusProps } from "@/lib/utils";
 
 interface RecentOrdersProps {
   fullView?: boolean;
@@ -108,7 +108,7 @@ export function RecentOrders({ fullView = false }: RecentOrdersProps) {
                 </div>
               </TableCell>
               <TableCell>
-                <GetOrderStatus status={order.status} />
+                <Badge {...getOrderStatusProps(order.status)} />
               </TableCell>
               <TableCell>{order.date}</TableCell>
               <TableCell className="text-right">{order.amount}</TableCell>

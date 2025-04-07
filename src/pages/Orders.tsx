@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, CardContent, CardDescription, CardHeader, CardTitle 
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Filter, Search } from "lucide-react";
-import { GetOrderStatus } from "@/lib/utils";
+import { getOrderStatusProps } from "@/lib/utils";
 import { OrderDetails } from "@/components/orders/OrderDetails";
 
 // Sample data
@@ -223,7 +222,7 @@ export default function Orders() {
                           </TableCell>
                           <TableCell>{order.date}</TableCell>
                           <TableCell>
-                            <GetOrderStatus status={order.status} />
+                            <Badge {...getOrderStatusProps(order.status)} />
                           </TableCell>
                           <TableCell>${order.total.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
@@ -279,7 +278,7 @@ export default function Orders() {
                           </TableCell>
                           <TableCell>{order.date}</TableCell>
                           <TableCell>
-                            <GetOrderStatus status={order.status} />
+                            <Badge {...getOrderStatusProps(order.status)} />
                           </TableCell>
                           <TableCell>${order.total.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
@@ -329,6 +328,9 @@ export default function Orders() {
                               </div>
                             </TableCell>
                             <TableCell>{order.date}</TableCell>
+                            <TableCell>
+                              <Badge {...getOrderStatusProps(order.status)} />
+                            </TableCell>
                             <TableCell>${order.total.toFixed(2)}</TableCell>
                             <TableCell className="text-right">
                               <Button 
@@ -383,6 +385,9 @@ export default function Orders() {
                               </div>
                             </TableCell>
                             <TableCell>{order.date}</TableCell>
+                            <TableCell>
+                              <Badge {...getOrderStatusProps(order.status)} />
+                            </TableCell>
                             <TableCell>${order.total.toFixed(2)}</TableCell>
                             <TableCell className="text-right">
                               <Button 

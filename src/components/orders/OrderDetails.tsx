@@ -2,7 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { GetOrderStatus } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { getOrderStatusProps } from "@/lib/utils";
 import { ArrowLeft, Mail, MapPin, Phone, Printer } from "lucide-react";
 
 interface OrderItem {
@@ -60,7 +61,7 @@ export function OrderDetails({ order, onBack }: OrderDetailsProps) {
                 <CardTitle className="text-2xl">Order {order.id}</CardTitle>
                 <CardDescription>Placed on {order.date}</CardDescription>
               </div>
-              <GetOrderStatus status={order.status} />
+              <Badge {...getOrderStatusProps(order.status)} />
             </div>
           </CardHeader>
           <CardContent>

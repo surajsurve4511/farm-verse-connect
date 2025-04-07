@@ -177,7 +177,7 @@ export function Header({ className }: HeaderProps) {
                 </div>
               </div>
               <div className="max-h-80 overflow-auto">
-                {userRole === "farmer" ? (
+                {(userRole === "farmer" ? (
                   // Farmer notifications
                   [
                     { title: "New order received", desc: "Order #1042 has been placed", time: "2 hours ago" },
@@ -199,7 +199,7 @@ export function Header({ className }: HeaderProps) {
                     { title: "Order status update", desc: "Your order #1036 has been shipped", time: "1 hour ago" },
                     { title: "Special promotion", desc: "Use code FRESH10 for 10% off", time: "Yesterday" },
                   ]
-                )}.map((notification, i) => (
+                )).map((notification, i) => (
                   <div key={i} className="flex items-start gap-3 p-4 hover:bg-muted cursor-pointer">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="/placeholder.svg" />

@@ -37,15 +37,30 @@ export default function Login() {
       // This would normally be authenticated through a backend API
       console.log("Login with:", { loginEmail, loginPassword });
       
-      // Store the email to identify the user role (demo purposes only)
+      // Store the email and role to identify the user
       localStorage.setItem("userEmail", loginEmail);
+      
+      // Determine user role based on email pattern for demo purposes
+      let userRole = "customer";
+      if (loginEmail.includes("farmer")) {
+        userRole = "farmer";
+      } else if (loginEmail.includes("admin")) {
+        userRole = "admin";
+      }
+      
+      localStorage.setItem("userRole", userRole);
       
       toast({
         title: "Login successful",
-        description: "Welcome back to SmartFarm Direct!",
+        description: `Welcome back to SmartFarm Direct! You are logged in as a ${userRole}.`,
       });
       
-      navigate("/dashboard");
+      // Redirect based on role
+      if (userRole === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         title: "Login failed",
@@ -73,15 +88,21 @@ export default function Login() {
         registerRole 
       });
       
-      // Store the email to identify the user role (demo purposes only)
+      // Store the email and role to identify the user
       localStorage.setItem("userEmail", registerEmail);
+      localStorage.setItem("userRole", registerRole);
       
       toast({
         title: "Registration successful",
-        description: "Your account has been created. Welcome!",
+        description: `Your account has been created as a ${registerRole}. Welcome!`,
       });
       
-      navigate("/dashboard");
+      // Redirect based on role
+      if (registerRole === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -159,6 +180,7 @@ export default function Login() {
                   <div className="mt-1">
                     <div><strong>Farmer:</strong> farmer@example.com / password</div>
                     <div><strong>Customer:</strong> customer@example.com / password</div>
+                    <div><strong>Admin:</strong> admin@example.com / password</div>
                   </div>
                 </div>
               </CardFooter>
@@ -230,6 +252,17 @@ export default function Login() {
                           className="w-4 h-4 text-primary border-primary focus:ring-primary"
                         />
                         <span>Customer</span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="role"
+                          value="admin"
+                          checked={registerRole === "admin"}
+                          onChange={() => setRegisterRole("admin")}
+                          className="w-4 h-4 text-primary border-primary focus:ring-primary"
+                        />
+                        <span>Admin</span>
                       </label>
                     </div>
                   </div>

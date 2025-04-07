@@ -1,5 +1,6 @@
 
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
@@ -15,13 +16,13 @@ import {
   User,
   Inbox,
   Users,
-  MessageSquare
+  MessageSquare,
+  ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
 
 interface SidebarProps {
   className?: string;
@@ -55,6 +56,17 @@ export function Sidebar({ className }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get user role and email from localStorage
+    const role = localStorage.getItem("userRole");
+    const email = localStorage.getItem("userEmail");
+    
+    setUserRole(role);
+    setUserEmail(email);
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
   
@@ -62,15 +74,44 @@ export function Sidebar({ className }: SidebarProps) {
     navigate(path);
     setIsMobileOpen(false);
   };
+
+  const handleLogout = () => {
+    // Clear user data
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    
+    // Navigate to login
+    navigate("/login");
+  };
+  
+  // Get user name from email
+  const getUserName = () => {
+    if (!userEmail) return "User";
+    
+    const nameFromEmail = userEmail.split('@')[0];
+    // Capitalize first letter of each word
+    return nameFromEmail
+      .split(/[._-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
   
   const sidebarContent = (
     <>
       <div className="px-3 py-4">
         <div className="mb-8">
           <h2 className="text-lg font-bold text-sidebar-primary-foreground">SmartFarm Direct</h2>
-          <p className="text-xs text-sidebar-foreground/70">Farm-to-Consumer Platform</p>
+          <p className="text-xs text-sidebar-foreground/70">
+            {userRole === "farmer" 
+              ? "Farmer Dashboard" 
+              : userRole === "admin" 
+                ? "Admin Dashboard" 
+                : "Customer Dashboard"
+            }
+          </p>
         </div>
         
+        {/* Common links for all users */}
         <div className="space-y-1">
           <SidebarItem 
             icon={Home} 
@@ -86,64 +127,127 @@ export function Sidebar({ className }: SidebarProps) {
             active={isActive("/dashboard")} 
             onClick={() => handleNavigate("/dashboard")}
           />
-          <SidebarItem 
-            icon={Package} 
-            text="Products" 
-            href="/products" 
-            active={isActive("/products")} 
-            onClick={() => handleNavigate("/products")}
-          />
-          <SidebarItem 
-            icon={ShoppingCart} 
-            text="Orders" 
-            href="/orders" 
-            active={isActive("/orders")} 
-            onClick={() => handleNavigate("/orders")}
-          />
         </div>
         
         <Separator className="my-4 bg-sidebar-border" />
         
+        {/* Role-specific links */}
+        {userRole === "farmer" && (
+          <div className="space-y-1">
+            <SidebarItem 
+              icon={Package} 
+              text="My Products" 
+              href="/products" 
+              active={isActive("/products")} 
+              onClick={() => handleNavigate("/products")}
+            />
+            <SidebarItem 
+              icon={ShoppingCart} 
+              text="Orders" 
+              href="/orders" 
+              active={isActive("/orders")} 
+              onClick={() => handleNavigate("/orders")}
+            />
+            <SidebarItem 
+              icon={BarChart3} 
+              text="Analytics" 
+              href="/analytics" 
+              active={isActive("/analytics")} 
+              onClick={() => handleNavigate("/analytics")}
+            />
+            <SidebarItem 
+              icon={Users} 
+              text="Customers" 
+              href="/customers" 
+              active={isActive("/customers")} 
+              onClick={() => handleNavigate("/customers")}
+            />
+            <SidebarItem 
+              icon={Timer} 
+              text="Deliveries" 
+              href="/deliveries" 
+              active={isActive("/deliveries")} 
+              onClick={() => handleNavigate("/deliveries")}
+            />
+          </div>
+        )}
+        
+        {userRole === "customer" && (
+          <div className="space-y-1">
+            <SidebarItem 
+              icon={ShoppingCart} 
+              text="Marketplace" 
+              href="/marketplace" 
+              active={isActive("/marketplace")} 
+              onClick={() => handleNavigate("/marketplace")}
+            />
+            <SidebarItem 
+              icon={Package} 
+              text="My Orders" 
+              href="/orders" 
+              active={isActive("/orders")} 
+              onClick={() => handleNavigate("/orders")}
+            />
+            <SidebarItem 
+              icon={ShoppingCart} 
+              text="Cart" 
+              href="/cart" 
+              active={isActive("/cart")} 
+              onClick={() => handleNavigate("/cart")}
+            />
+          </div>
+        )}
+        
+        {userRole === "admin" && (
+          <div className="space-y-1">
+            <SidebarItem 
+              icon={ShieldCheck} 
+              text="Admin Panel" 
+              href="/admin" 
+              active={isActive("/admin")} 
+              onClick={() => handleNavigate("/admin")}
+            />
+            <SidebarItem 
+              icon={Users} 
+              text="Users" 
+              href="/admin" 
+              active={isActive("/admin") && location.hash === "#users"} 
+              onClick={() => handleNavigate("/admin#users")}
+            />
+            <SidebarItem 
+              icon={Package} 
+              text="Products" 
+              href="/products" 
+              active={isActive("/products")} 
+              onClick={() => handleNavigate("/products")}
+            />
+            <SidebarItem 
+              icon={ShoppingCart} 
+              text="Orders" 
+              href="/orders" 
+              active={isActive("/orders")} 
+              onClick={() => handleNavigate("/orders")}
+            />
+            <SidebarItem 
+              icon={BarChart3} 
+              text="Analytics" 
+              href="/analytics" 
+              active={isActive("/analytics")} 
+              onClick={() => handleNavigate("/analytics")}
+            />
+          </div>
+        )}
+        
+        <Separator className="my-4 bg-sidebar-border" />
+        
+        {/* Common settings, support links */}
         <div className="space-y-1">
           <SidebarItem 
-            icon={BarChart3} 
-            text="Analytics" 
-            href="/analytics" 
-            active={isActive("/analytics")} 
-            onClick={() => handleNavigate("/analytics")}
-          />
-          <SidebarItem 
-            icon={Users} 
-            text="Customers" 
-            href="/customers" 
-            active={isActive("/customers")} 
-            onClick={() => handleNavigate("/customers")}
-          />
-          <SidebarItem 
-            icon={Inbox} 
+            icon={MessageSquare} 
             text="Messages" 
             href="/messages" 
             active={isActive("/messages")} 
             onClick={() => handleNavigate("/messages")}
-          />
-          <SidebarItem 
-            icon={Timer} 
-            text="Deliveries" 
-            href="/deliveries" 
-            active={isActive("/deliveries")} 
-            onClick={() => handleNavigate("/deliveries")}
-          />
-        </div>
-        
-        <Separator className="my-4 bg-sidebar-border" />
-        
-        <div className="space-y-1">
-          <SidebarItem 
-            icon={MessageSquare} 
-            text="Farm Story" 
-            href="/farm-story" 
-            active={isActive("/farm-story")} 
-            onClick={() => handleNavigate("/farm-story")}
           />
           <SidebarItem 
             icon={Settings} 
@@ -169,14 +273,14 @@ export function Sidebar({ className }: SidebarProps) {
             <User className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-sidebar-foreground">John Farmer</span>
-            <span className="text-xs text-sidebar-foreground/70">john@farm.com</span>
+            <span className="text-sm font-medium text-sidebar-foreground">{getUserName()}</span>
+            <span className="text-xs text-sidebar-foreground/70">{userEmail || "user@example.com"}</span>
           </div>
           <Button 
             variant="ghost" 
             size="icon" 
             className="ml-auto text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
           >
             <LogOut className="h-5 w-5" />
           </Button>

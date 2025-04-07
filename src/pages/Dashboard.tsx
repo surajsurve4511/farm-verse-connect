@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -11,32 +12,37 @@ import { WeatherForecast } from "@/components/dashboard/WeatherForecast";
 import { InventoryStatus } from "@/components/dashboard/InventoryStatus";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShoppingBag, Users, TrendingUp, Truck, AlertCircle } from "lucide-react";
-
-// Demo function to simulate checking user role from login
-const getUserRole = () => {
-  // In a real app, this would come from your auth context
-  const userEmail = localStorage.getItem("userEmail") || "";
-  
-  if (userEmail.includes("farmer")) {
-    return "farmer";
-  }
-  return "customer";
-};
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const [userRole, setUserRole] = useState<"farmer" | "customer">("customer");
+  const [userRole, setUserRole] = useState<"farmer" | "customer" | "admin">("customer");
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Get stored email from demo login
-    const email = localStorage.getItem("userEmail");
-    if (email) {
-      setUserRole(email.includes("farmer") ? "farmer" : "customer");
-    } else {
-      // Set demo role based on URL (if testing directly)
-      const url = window.location.href;
-      setUserRole(url.includes("farmer") ? "farmer" : "customer");
+    // Get stored role from login
+    const role = localStorage.getItem("userRole");
+    
+    if (!role) {
+      // If no role is found, redirect to login
+      toast({
+        title: "Authentication required",
+        description: "Please log in to access the dashboard.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
     }
-  }, []);
+    
+    // If role is admin, redirect to admin dashboard
+    if (role === "admin") {
+      navigate("/admin");
+      return;
+    }
+    
+    // Set the role state
+    setUserRole(role as "farmer" | "customer");
+  }, [navigate, toast]);
 
   return (
     <div className="flex flex-col space-y-6 p-6">
@@ -281,6 +287,8 @@ function FarmerDashboard() {
 }
 
 function CustomerDashboard() {
+  const navigate = useNavigate();
+  
   return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
@@ -406,7 +414,13 @@ function CustomerDashboard() {
                   <p className="text-sm text-muted-foreground">Local Farm</p>
                   <div className="flex justify-between items-center mt-2">
                     <span className="font-medium">$12.99</span>
-                    <Button size="sm" variant="outline">Add</Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => navigate("/marketplace")}
+                    >
+                      Shop Now
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -442,7 +456,7 @@ function CustomerDashboard() {
               You haven't saved any favorites yet. Browse the marketplace to find products you love!
             </p>
             <div className="flex justify-center">
-              <Button>Browse Marketplace</Button>
+              <Button onClick={() => navigate("/marketplace")}>Browse Marketplace</Button>
             </div>
           </CardContent>
         </Card>

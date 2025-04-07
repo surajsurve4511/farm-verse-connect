@@ -11,33 +11,100 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, CreditCard, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Sample cart data - in a real app, this would come from a context or state management
-const initialItems = [
+// Sample initial products
+const sampleProducts = [
   {
     id: "1",
     name: "Organic Tomatoes",
     price: 4.99,
-    quantity: 2,
     image: "/placeholder.svg",
     farm: "Green Acres Farm"
+  },
+  {
+    id: "2",
+    name: "Fresh Lettuce",
+    price: 3.49,
+    image: "/placeholder.svg",
+    farm: "Sunny Valley Organics"
   },
   {
     id: "3",
     name: "Grass-fed Beef",
     price: 15.99,
-    quantity: 1,
     image: "/placeholder.svg",
     farm: "Highland Ranch"
   },
+  {
+    id: "4",
+    name: "Farm Fresh Eggs",
+    price: 5.99,
+    image: "/placeholder.svg",
+    farm: "Happy Hen Farm"
+  },
+  {
+    id: "5",
+    name: "Organic Honey",
+    price: 8.99,
+    image: "/placeholder.svg",
+    farm: "Beehive Gardens"
+  },
 ];
 
+// Cart item type
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  farm: string;
+}
+
 export default function Cart() {
-  const [cartItems, setCartItems] = useState(initialItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Load cart items from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Error parsing cart data:", e);
+        // Initialize with some sample items if parsing fails
+        initializeCartWithSamples();
+      }
+    } else {
+      // Initialize with some sample items for demo
+      initializeCartWithSamples();
+    }
+  }, []);
+
+  // Save cart items to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  // Initialize cart with sample items for demo
+  const initializeCartWithSamples = () => {
+    const initialItems: CartItem[] = [
+      {
+        ...sampleProducts[0],
+        quantity: 2
+      },
+      {
+        ...sampleProducts[2],
+        quantity: 1
+      }
+    ];
+    setCartItems(initialItems);
+    localStorage.setItem('cart', JSON.stringify(initialItems));
+  };
 
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   const shipping = 5.99;
@@ -45,16 +112,54 @@ export default function Cart() {
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return;
+    
     setCartItems(cartItems.map(item => 
       item.id === id ? { ...item, quantity: newQuantity } : item
     ));
+    
+    toast({
+      title: "Cart updated",
+      description: "Your cart has been updated with the new quantity.",
+    });
   };
 
   const removeItem = (id: string) => {
     setCartItems(cartItems.filter(item => item.id !== id));
+    
     toast({
       title: "Item removed",
       description: "The item has been removed from your cart.",
+    });
+  };
+
+  const addToCart = (product: typeof sampleProducts[0]) => {
+    // Check if item already exists in cart
+    const existingItemIndex = cartItems.findIndex(item => item.id === product.id);
+    
+    if (existingItemIndex !== -1) {
+      // Update quantity if item exists
+      const updatedItems = [...cartItems];
+      updatedItems[existingItemIndex].quantity += 1;
+      setCartItems(updatedItems);
+    } else {
+      // Add new item if it doesn't exist
+      setCartItems([...cartItems, { ...product, quantity: 1 }]);
+    }
+    
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart.`,
+    });
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    setDiscount(0);
+    setPromoCode("");
+    
+    toast({
+      title: "Cart cleared",
+      description: "All items have been removed from your cart.",
     });
   };
 
@@ -90,11 +195,6 @@ export default function Cart() {
       navigate("/checkout");
     }, 1000);
   };
-
-  useEffect(() => {
-    // This would typically sync with localStorage or a backend API
-    console.log("Cart updated:", cartItems);
-  }, [cartItems]);
 
   return (
     <div className="min-h-screen bg-muted/30 py-8">
@@ -177,6 +277,53 @@ export default function Cart() {
                       ))}
                     </TableBody>
                   </Table>
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      variant="outline"
+                      onClick={clearCart}
+                    >
+                      Clear Cart
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Recommended Products Section */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>You Might Also Like</CardTitle>
+                  <CardDescription>
+                    Products based on your current cart items
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sampleProducts.filter(p => !cartItems.some(item => item.id === p.id)).slice(0, 3).map(product => (
+                      <Card key={product.id}>
+                        <div className="aspect-square">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="font-medium">{product.name}</h3>
+                          <p className="text-sm text-muted-foreground">{product.farm}</p>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="font-medium">${product.price.toFixed(2)}</span>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => addToCart(product)}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>

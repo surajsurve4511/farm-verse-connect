@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
@@ -12,7 +12,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Check } from "lucide-react";
+import { ArrowLeft, CreditCard, Check, Truck, Box, MapPin, Clock } from "lucide-react";
+
+// Cart item type
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  farm: string;
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -20,6 +30,10 @@ export default function Checkout() {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [orderComplete, setOrderComplete] = useState(false);
+  const [orderTracking, setOrderTracking] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState("processing");
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [orderNumber, setOrderNumber] = useState("");
 
   // Form state
   const [shippingInfo, setShippingInfo] = useState({
@@ -42,6 +56,31 @@ export default function Checkout() {
     saveCard: false
   });
 
+  // Load cart items from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Error parsing cart data:", e);
+      }
+    }
+  }, []);
+
+  // Calculate order summary
+  const orderSummary = {
+    items: cartItems.map(item => ({ 
+      name: item.name, 
+      quantity: item.quantity, 
+      price: item.price 
+    })),
+    subtotal: cartItems.reduce((total, item) => total + (item.price * item.quantity), 0),
+    shipping: 5.99,
+    discount: 0,
+    get total() { return this.subtotal + this.shipping - this.discount; }
+  };
+
   const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setShippingInfo(prev => ({
@@ -61,10 +100,17 @@ export default function Checkout() {
   const handlePlaceOrder = () => {
     setIsLoading(true);
     
+    // Generate random order number
+    const newOrderNumber = `FSD-${Math.floor(100000 + Math.random() * 900000)}`;
+    setOrderNumber(newOrderNumber);
+    
     // Simulate payment processing
     setTimeout(() => {
       setIsLoading(false);
       setOrderComplete(true);
+      
+      // Clear cart after successful order
+      localStorage.removeItem('cart');
       
       toast({
         title: "Order placed successfully!",
@@ -73,17 +119,152 @@ export default function Checkout() {
     }, 2000);
   };
 
-  // Sample order summary data
-  const orderSummary = {
-    items: [
-      { name: "Organic Tomatoes", quantity: 2, price: 4.99 },
-      { name: "Grass-fed Beef", quantity: 1, price: 15.99 }
-    ],
-    subtotal: 25.97,
-    shipping: 5.99,
-    discount: 2.60,
-    total: 29.36
+  const handleTrackOrder = () => {
+    setOrderTracking(true);
+    
+    // Simulate order status update
+    const statuses = ["processing", "confirmed", "shipped", "out_for_delivery", "delivered"];
+    let currentIndex = 0;
+    
+    setTrackingStatus(statuses[currentIndex]);
+    
+    // Simulate order status progression
+    const statusInterval = setInterval(() => {
+      currentIndex++;
+      if (currentIndex < statuses.length) {
+        setTrackingStatus(statuses[currentIndex]);
+      } else {
+        clearInterval(statusInterval);
+      }
+    }, 3000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(statusInterval);
   };
+  
+  // Render the order tracking interface
+  if (orderTracking) {
+    return (
+      <div className="min-h-screen bg-muted/30 py-8">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <div className="mb-6">
+            <button 
+              onClick={() => setOrderTracking(false)} 
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Order Confirmation
+            </button>
+            <h1 className="text-3xl font-bold mt-2">Track Your Order</h1>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Order #{orderNumber}</CardTitle>
+              <CardDescription>
+                Track the status of your order in real-time
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col space-y-12">
+                <div className="relative">
+                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-muted-foreground/30 z-0"></div>
+                  
+                  <div className="relative z-10 flex items-center mb-12">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${trackingStatus === "processing" ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"}`}>
+                      <Box className="h-8 w-8" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="font-medium text-lg">Order Processing</h3>
+                      <p className="text-muted-foreground">Your order has been received and is being processed</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {new Date().toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center mb-12">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${trackingStatus === "confirmed" ? "bg-blue-100 text-blue-600" : (trackingStatus === "processing" ? "bg-muted text-muted-foreground" : "bg-green-100 text-green-600")}`}>
+                      <Check className="h-8 w-8" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="font-medium text-lg">Order Confirmed</h3>
+                      <p className="text-muted-foreground">Your order has been confirmed and is being prepared</p>
+                      {trackingStatus !== "processing" && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(Date.now() + 10 * 60000).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center mb-12">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${trackingStatus === "shipped" ? "bg-blue-100 text-blue-600" : (trackingStatus === "processing" || trackingStatus === "confirmed" ? "bg-muted text-muted-foreground" : "bg-green-100 text-green-600")}`}>
+                      <Truck className="h-8 w-8" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="font-medium text-lg">Shipped</h3>
+                      <p className="text-muted-foreground">Your order has been shipped and is on its way</p>
+                      {trackingStatus !== "processing" && trackingStatus !== "confirmed" && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(Date.now() + 30 * 60000).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center mb-12">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${trackingStatus === "out_for_delivery" ? "bg-blue-100 text-blue-600" : (trackingStatus === "processing" || trackingStatus === "confirmed" || trackingStatus === "shipped" ? "bg-muted text-muted-foreground" : "bg-green-100 text-green-600")}`}>
+                      <MapPin className="h-8 w-8" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="font-medium text-lg">Out for Delivery</h3>
+                      <p className="text-muted-foreground">Your order is out for delivery</p>
+                      {trackingStatus !== "processing" && trackingStatus !== "confirmed" && trackingStatus !== "shipped" && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(Date.now() + 60 * 60000).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${trackingStatus === "delivered" ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                      <Clock className="h-8 w-8" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="font-medium text-lg">Delivered</h3>
+                      <p className="text-muted-foreground">Your order has been delivered successfully</p>
+                      {trackingStatus === "delivered" && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(Date.now() + 90 * 60000).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-8 p-4 bg-muted rounded-lg">
+                <h3 className="font-medium mb-2">Delivery Details</h3>
+                <p><span className="text-muted-foreground">Address:</span> {shippingInfo.address}, {shippingInfo.city}, {shippingInfo.state} {shippingInfo.zipCode}</p>
+                <p><span className="text-muted-foreground">Recipient:</span> {shippingInfo.firstName} {shippingInfo.lastName}</p>
+                <p><span className="text-muted-foreground">Contact:</span> {shippingInfo.phone}</p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setOrderTracking(false)}>
+                Back to Order
+              </Button>
+              <Button disabled={trackingStatus !== "delivered"}>
+                {trackingStatus === "delivered" ? "Confirm Receipt" : "Awaiting Delivery"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (orderComplete) {
     return (
@@ -101,21 +282,38 @@ export default function Checkout() {
               </p>
               
               <div className="bg-muted p-4 rounded-md w-full max-w-md mb-6">
-                <div className="font-medium">Order #FSD-{Math.floor(100000 + Math.random() * 900000)}</div>
+                <div className="font-medium">Order #{orderNumber}</div>
                 <div className="text-sm text-muted-foreground">A confirmation email has been sent to {shippingInfo.email}</div>
               </div>
               
-              <div className="flex gap-4">
-                <Link to="/dashboard">
-                  <Button>
-                    Go to Dashboard
-                  </Button>
-                </Link>
-                <Link to="/marketplace">
-                  <Button variant="outline">
-                    Continue Shopping
-                  </Button>
-                </Link>
+              <div className="flex flex-col items-center gap-4 mb-8 w-full max-w-md">
+                <Button 
+                  className="w-full" 
+                  onClick={handleTrackOrder}
+                >
+                  <Truck className="mr-2 h-4 w-4" />
+                  Track Your Order
+                </Button>
+                
+                <div className="flex gap-4 w-full">
+                  <Link to="/dashboard" className="w-1/2">
+                    <Button className="w-full" variant="outline">
+                      Go to Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/marketplace" className="w-1/2">
+                    <Button className="w-full" variant="outline">
+                      Continue Shopping
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              
+              <div className="bg-muted/50 p-4 rounded-md w-full max-w-md">
+                <h3 className="font-medium mb-2">Estimated Delivery</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your order is expected to arrive within 2-3 business days. You can track your order status at any time.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -393,10 +591,12 @@ export default function Checkout() {
                     <span className="text-muted-foreground">Shipping</span>
                     <span>${orderSummary.shipping.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
-                    <span>-${orderSummary.discount.toFixed(2)}</span>
-                  </div>
+                  {orderSummary.discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span>-${orderSummary.discount.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <Separator />
@@ -411,7 +611,7 @@ export default function Checkout() {
                   className="w-full"
                   size="lg"
                   onClick={handlePlaceOrder}
-                  disabled={isLoading}
+                  disabled={isLoading || orderSummary.items.length === 0}
                 >
                   {isLoading ? "Processing..." : "Place Order"}
                 </Button>

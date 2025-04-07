@@ -37,6 +37,9 @@ export default function Login() {
       // This would normally be authenticated through a backend API
       console.log("Login with:", { loginEmail, loginPassword });
       
+      // Store the email to identify the user role (demo purposes only)
+      localStorage.setItem("userEmail", loginEmail);
+      
       toast({
         title: "Login successful",
         description: "Welcome back to SmartFarm Direct!",
@@ -69,6 +72,9 @@ export default function Login() {
         registerPassword,
         registerRole 
       });
+      
+      // Store the email to identify the user role (demo purposes only)
+      localStorage.setItem("userEmail", registerEmail);
       
       toast({
         title: "Registration successful",

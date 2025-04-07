@@ -2,13 +2,14 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Badge } from "@/components/ui/badge"
+import * as React from "react"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 // Component to render order status badge
-export function GetOrderStatus({ status }: { status: string }) {
+export function GetOrderStatus({ status }: { status: string }): React.ReactNode {
   switch (status) {
     case "processing":
       return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Processing</Badge>

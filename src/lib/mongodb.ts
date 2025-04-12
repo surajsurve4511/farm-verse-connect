@@ -1,3 +1,4 @@
+
 import { MongoClient, ObjectId } from "mongodb";
 import { toast } from "sonner";
 
@@ -13,6 +14,26 @@ export const collections = {
   reviews: 'reviews',
   payments: 'payments'
 };
+
+// Helper function to convert string ID to ObjectId
+export function toObjectId(id: string): ObjectId {
+  try {
+    return new ObjectId(id);
+  } catch (error) {
+    console.error('Invalid ObjectId format:', id, error);
+    return id as any; // Fallback for mock data with string IDs
+  }
+}
+
+// Helper function to safely query by ID (handles both ObjectId and string IDs)
+export function createIdFilter(id: string) {
+  try {
+    return { _id: new ObjectId(id) };
+  } catch (error) {
+    // Fallback to string ID for compatibility with mock data
+    return { $or: [{ _id: id }, { id }] };
+  }
+}
 
 let client: MongoClient | null = null;
 let isConnected = false;

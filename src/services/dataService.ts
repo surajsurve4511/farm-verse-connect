@@ -1,4 +1,4 @@
-import { getDB, collections } from '@/lib/mongodb';
+import { getDB, collections, toObjectId, createIdFilter } from '@/lib/mongodb';
 
 // User related operations
 export async function getUserByEmail(email: string) {
@@ -8,7 +8,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: string) {
   const db = await getDB();
-  return db.collection(collections.users).findOne({ _id: id });
+  return db.collection(collections.users).findOne(createIdFilter(id));
 }
 
 export async function createUser(userData: any) {
@@ -24,7 +24,7 @@ export async function updateUser(id: string, userData: any) {
   const { _id, ...updateData } = userData; // Remove _id to avoid errors
   
   return db.collection(collections.users).updateOne(
-    { _id: id },
+    createIdFilter(id),
     { 
       $set: {
         ...updateData,
@@ -42,13 +42,7 @@ export async function getAllProducts(filter = {}) {
 
 export async function getProductById(id: string) {
   const db = await getDB();
-  
-  // Try to find by _id first
-  const productById = await db.collection(collections.products).findOne({ _id: id });
-  if (productById) return productById;
-  
-  // Fall back to string id (compatible with mock data)
-  return db.collection(collections.products).findOne({ id });
+  return db.collection(collections.products).findOne(createIdFilter(id));
 }
 
 export async function getProductsByFarmer(farmerId: string) {
@@ -69,22 +63,8 @@ export async function updateProduct(id: string, productData: any) {
   const db = await getDB();
   const { _id, ...updateData } = productData; // Remove _id to avoid errors
   
-  // Try to update by _id
-  const updateResult = await db.collection(collections.products).updateOne(
-    { _id: id },
-    { 
-      $set: {
-        ...updateData,
-        updatedAt: new Date()
-      } 
-    }
-  );
-  
-  if (updateResult.matchedCount > 0) return updateResult;
-  
-  // Fall back to string id (compatible with mock data)
   return db.collection(collections.products).updateOne(
-    { id },
+    createIdFilter(id),
     { 
       $set: {
         ...updateData,
@@ -96,13 +76,7 @@ export async function updateProduct(id: string, productData: any) {
 
 export async function deleteProduct(id: string) {
   const db = await getDB();
-  
-  // Try to delete by _id
-  const deleteResult = await db.collection(collections.products).deleteOne({ _id: id });
-  if (deleteResult.deletedCount > 0) return deleteResult;
-  
-  // Fall back to string id (compatible with mock data)
-  return db.collection(collections.products).deleteOne({ id });
+  return db.collection(collections.products).deleteOne(createIdFilter(id));
 }
 
 // Order related operations
@@ -126,13 +100,7 @@ export async function getOrdersByFarmer(farmerId: string) {
 
 export async function getOrderById(id: string) {
   const db = await getDB();
-  
-  // Try by _id
-  const orderById = await db.collection(collections.orders).findOne({ _id: id });
-  if (orderById) return orderById;
-  
-  // Fall back to string id
-  return db.collection(collections.orders).findOne({ id });
+  return db.collection(collections.orders).findOne(createIdFilter(id));
 }
 
 export async function createOrder(orderData: any) {
@@ -149,22 +117,8 @@ export async function updateOrder(id: string, orderData: any) {
   const db = await getDB();
   const { _id, ...updateData } = orderData; // Remove _id to avoid errors
   
-  // Try by _id
-  const updateResult = await db.collection(collections.orders).updateOne(
-    { _id: id },
-    { 
-      $set: {
-        ...updateData,
-        updatedAt: new Date()
-      } 
-    }
-  );
-  
-  if (updateResult.matchedCount > 0) return updateResult;
-  
-  // Fall back to string id
   return db.collection(collections.orders).updateOne(
-    { id },
+    createIdFilter(id),
     { 
       $set: {
         ...updateData,
@@ -312,20 +266,8 @@ export async function updatePayment(id: string, paymentData: any) {
   const db = await getDB();
   const { _id, ...updateData } = paymentData; // Remove _id to avoid errors
   
-  const updateResult = await db.collection(collections.payments).updateOne(
-    { _id: id },
-    { 
-      $set: {
-        ...updateData,
-        updatedAt: new Date()
-      } 
-    }
-  );
-  
-  if (updateResult.matchedCount > 0) return updateResult;
-  
   return db.collection(collections.payments).updateOne(
-    { id },
+    createIdFilter(id),
     { 
       $set: {
         ...updateData,

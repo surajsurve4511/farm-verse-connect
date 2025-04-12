@@ -1,5 +1,5 @@
-
 import { toast } from "sonner";
+import { ObjectId } from "mongodb";
 
 // Define collection names
 export const collections = {
@@ -115,6 +115,8 @@ export async function connectToMongoDB() {
 // Define proper types for the options
 interface UpdateOptions {
   upsert?: boolean;
+  multi?: boolean;
+  returnDocument?: 'before' | 'after';
 }
 
 /**

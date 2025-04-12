@@ -1,4 +1,3 @@
-
 import { getDB, collections } from '@/lib/mongodb';
 
 // User related operations
@@ -109,12 +108,12 @@ export async function deleteProduct(id: string) {
 // Order related operations
 export async function getAllOrders(filter = {}) {
   const db = await getDB();
-  return db.collection(collections.orders).find(filter).sort().toArray();
+  return db.collection(collections.orders).find(filter).toArray();
 }
 
 export async function getOrdersByUser(userId: string) {
   const db = await getDB();
-  return db.collection(collections.orders).find({ userId }).sort().toArray();
+  return db.collection(collections.orders).find({ userId }).toArray();
 }
 
 export async function getOrdersByFarmer(farmerId: string) {
@@ -122,7 +121,6 @@ export async function getOrdersByFarmer(farmerId: string) {
   // Get orders containing products from this farmer
   return db.collection(collections.orders)
     .find({ 'items.farmerId': farmerId })
-    .sort()
     .toArray();
 }
 
@@ -199,7 +197,6 @@ export async function getNotificationsForUser(userId: string) {
   const db = await getDB();
   return db.collection(collections.notifications)
     .find({ userId })
-    .sort()
     .toArray();
 }
 
@@ -258,7 +255,6 @@ export async function getReviewsForProduct(productId: string) {
   const db = await getDB();
   return db.collection(collections.reviews)
     .find({ productId })
-    .sort()
     .toArray();
 }
 
@@ -304,7 +300,6 @@ export async function getPaymentsByUser(userId: string) {
   const db = await getDB();
   return db.collection(collections.payments)
     .find({ userId })
-    .sort()
     .toArray();
 }
 

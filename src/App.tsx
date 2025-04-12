@@ -16,9 +16,19 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Support from "./pages/Support";
+import Messages from "./pages/Messages";
 import { ChatBot } from "./components/ai/ChatBot";
+import { connectToMongoDB } from "./lib/mongodb";
 
 const queryClient = new QueryClient();
+
+// Initialize MongoDB connection
+connectToMongoDB()
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch(error => console.error("MongoDB connection error:", error));
 
 // Route Guard component for protected routes
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -92,6 +102,10 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/messages" element={<Messages />} />
             {/* Add more protected routes here */}
           </Route>
           

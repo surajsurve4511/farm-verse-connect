@@ -112,6 +112,11 @@ export async function connectToMongoDB() {
   }
 }
 
+// Define proper types for the options
+interface UpdateOptions {
+  upsert?: boolean;
+}
+
 /**
  * Get DB function - in browser, returns mock operations
  */
@@ -157,7 +162,7 @@ export async function getDB() {
         },
         
         // Update one document
-        updateOne: async (filter: any, update: any, options = {}) => {
+        updateOne: async (filter: any, update: any, options: UpdateOptions = {}) => {
           const collection = mockDb[collectionName as keyof typeof mockDb];
           if (!Array.isArray(collection)) {
             console.error(`Collection ${collectionName} is not an array`);

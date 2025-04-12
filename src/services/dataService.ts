@@ -1,4 +1,6 @@
+
 import { getDB, collections, toObjectId, createIdFilter } from '@/lib/mongodb';
+import { Filter, Document } from 'mongodb';
 
 // User related operations
 export async function getUserByEmail(email: string) {
@@ -165,8 +167,10 @@ export async function createNotification(notificationData: any) {
 
 export async function markNotificationAsRead(id: string) {
   const db = await getDB();
+  // Using a direct filter with proper typing
+  const filter: Filter<Document> = { _id: toObjectId(id) };
   return db.collection(collections.notifications).updateOne(
-    { _id: id },
+    filter,
     { $set: { read: true, updatedAt: new Date() } }
   );
 }

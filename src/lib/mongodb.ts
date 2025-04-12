@@ -1,5 +1,5 @@
 
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient, ObjectId, Filter, Document } from "mongodb";
 import { toast } from "sonner";
 
 // Define collection names
@@ -21,17 +21,19 @@ export function toObjectId(id: string): ObjectId {
     return new ObjectId(id);
   } catch (error) {
     console.error('Invalid ObjectId format:', id, error);
-    return id as any; // Fallback for mock data with string IDs
+    throw new Error('Invalid ObjectId format');
   }
 }
 
 // Helper function to safely query by ID (handles both ObjectId and string IDs)
-export function createIdFilter(id: string) {
+export function createIdFilter(id: string): Filter<Document> {
   try {
+    // Try to convert to ObjectId first
     return { _id: new ObjectId(id) };
   } catch (error) {
-    // Fallback to string ID for compatibility with mock data
-    return { $or: [{ _id: id }, { id }] };
+    // For development/compatibility, use string ID as a fallback
+    console.warn('Using string ID instead of ObjectId:', id);
+    return { id: id } as Filter<Document>;
   }
 }
 

@@ -1,16 +1,5 @@
 
 import { getDB, collections } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
-
-// Convert string ID to ObjectId
-function toObjectId(id: string) {
-  try {
-    return new ObjectId(id);
-  } catch (error) {
-    console.error('Invalid ObjectId:', id);
-    return id; // Fall back to using the string ID if conversion fails
-  }
-}
 
 // User related operations
 export async function getUserByEmail(email: string) {
@@ -20,11 +9,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: string) {
   const db = await getDB();
-  try {
-    return db.collection(collections.users).findOne({ _id: toObjectId(id) });
-  } catch (error) {
-    return null;
-  }
+  return db.collection(collections.users).findOne({ _id: id });
 }
 
 export async function createUser(userData: any) {
@@ -40,7 +25,7 @@ export async function updateUser(id: string, userData: any) {
   const { _id, ...updateData } = userData; // Remove _id to avoid errors
   
   return db.collection(collections.users).updateOne(
-    { _id: toObjectId(id) },
+    { _id: id },
     { 
       $set: {
         ...updateData,
@@ -59,13 +44,9 @@ export async function getAllProducts(filter = {}) {
 export async function getProductById(id: string) {
   const db = await getDB();
   
-  // Try to find by ObjectId
-  try {
-    const product = await db.collection(collections.products).findOne({ _id: toObjectId(id) });
-    if (product) return product;
-  } catch (error) {
-    // If not a valid ObjectId, continue to search by string id
-  }
+  // Try to find by _id first
+  const productById = await db.collection(collections.products).findOne({ _id: id });
+  if (productById) return productById;
   
   // Fall back to string id (compatible with mock data)
   return db.collection(collections.products).findOne({ id });
@@ -89,22 +70,18 @@ export async function updateProduct(id: string, productData: any) {
   const db = await getDB();
   const { _id, ...updateData } = productData; // Remove _id to avoid errors
   
-  // Try to update by ObjectId
-  try {
-    const result = await db.collection(collections.products).updateOne(
-      { _id: toObjectId(id) },
-      { 
-        $set: {
-          ...updateData,
-          updatedAt: new Date()
-        } 
-      }
-    );
-    
-    if (result.matchedCount > 0) return result;
-  } catch (error) {
-    // If not a valid ObjectId, continue to update by string id
-  }
+  // Try to update by _id
+  const updateResult = await db.collection(collections.products).updateOne(
+    { _id: id },
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
+      } 
+    }
+  );
+  
+  if (updateResult.matchedCount > 0) return updateResult;
   
   // Fall back to string id (compatible with mock data)
   return db.collection(collections.products).updateOne(
@@ -121,13 +98,9 @@ export async function updateProduct(id: string, productData: any) {
 export async function deleteProduct(id: string) {
   const db = await getDB();
   
-  // Try to delete by ObjectId
-  try {
-    const result = await db.collection(collections.products).deleteOne({ _id: toObjectId(id) });
-    if (result.deletedCount > 0) return result;
-  } catch (error) {
-    // If not a valid ObjectId, continue to delete by string id
-  }
+  // Try to delete by _id
+  const deleteResult = await db.collection(collections.products).deleteOne({ _id: id });
+  if (deleteResult.deletedCount > 0) return deleteResult;
   
   // Fall back to string id (compatible with mock data)
   return db.collection(collections.products).deleteOne({ id });
@@ -156,12 +129,12 @@ export async function getOrdersByFarmer(farmerId: string) {
 export async function getOrderById(id: string) {
   const db = await getDB();
   
-  try {
-    return db.collection(collections.orders).findOne({ _id: toObjectId(id) });
-  } catch (error) {
-    // Fall back to string id if not a valid ObjectId
-    return db.collection(collections.orders).findOne({ id });
-  }
+  // Try by _id
+  const orderById = await db.collection(collections.orders).findOne({ _id: id });
+  if (orderById) return orderById;
+  
+  // Fall back to string id
+  return db.collection(collections.orders).findOne({ id });
 }
 
 export async function createOrder(orderData: any) {
@@ -178,62 +151,39 @@ export async function updateOrder(id: string, orderData: any) {
   const db = await getDB();
   const { _id, ...updateData } = orderData; // Remove _id to avoid errors
   
-  try {
-    return db.collection(collections.orders).updateOne(
-      { _id: toObjectId(id) },
-      { 
-        $set: {
-          ...updateData,
-          updatedAt: new Date()
-        } 
-      }
-    );
-  } catch (error) {
-    // Fall back to string id if not a valid ObjectId
-    return db.collection(collections.orders).updateOne(
-      { id },
-      { 
-        $set: {
-          ...updateData,
-          updatedAt: new Date()
-        } 
-      }
-    );
-  }
+  // Try by _id
+  const updateResult = await db.collection(collections.orders).updateOne(
+    { _id: id },
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
+      } 
+    }
+  );
+  
+  if (updateResult.matchedCount > 0) return updateResult;
+  
+  // Fall back to string id
+  return db.collection(collections.orders).updateOne(
+    { id },
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
+      } 
+    }
+  );
 }
 
 // Inventory related operations
 export async function getInventoryForProduct(productId: string) {
   const db = await getDB();
-  
-  try {
-    return db.collection(collections.inventory).findOne({ productId: toObjectId(productId) });
-  } catch (error) {
-    // Fall back to string id if not a valid ObjectId
-    return db.collection(collections.inventory).findOne({ productId });
-  }
+  return db.collection(collections.inventory).findOne({ productId });
 }
 
 export async function updateInventory(productId: string, quantity: number) {
   const db = await getDB();
-  
-  try {
-    // Try to update by ObjectId
-    const result = await db.collection(collections.inventory).updateOne(
-      { productId: toObjectId(productId) },
-      { 
-        $inc: { quantity },
-        $set: { updatedAt: new Date() }
-      },
-      { upsert: true }
-    );
-    
-    if (result.matchedCount > 0 || result.upsertedCount > 0) return result;
-  } catch (error) {
-    // If not a valid ObjectId, continue to update by string id
-  }
-  
-  // Fall back to string id
   return db.collection(collections.inventory).updateOne(
     { productId },
     { 
@@ -264,19 +214,10 @@ export async function createNotification(notificationData: any) {
 
 export async function markNotificationAsRead(id: string) {
   const db = await getDB();
-  
-  try {
-    return db.collection(collections.notifications).updateOne(
-      { _id: toObjectId(id) },
-      { $set: { read: true, updatedAt: new Date() } }
-    );
-  } catch (error) {
-    // Fall back to string id if not a valid ObjectId
-    return db.collection(collections.notifications).updateOne(
-      { id },
-      { $set: { read: true, updatedAt: new Date() } }
-    );
-  }
+  return db.collection(collections.notifications).updateOne(
+    { _id: id },
+    { $set: { read: true, updatedAt: new Date() } }
+  );
 }
 
 // Cart related operations
@@ -315,20 +256,6 @@ export async function clearCart(userId: string) {
 // Review related operations
 export async function getReviewsForProduct(productId: string) {
   const db = await getDB();
-  
-  try {
-    // Try to find by ObjectId
-    const reviews = await db.collection(collections.reviews)
-      .find({ productId: toObjectId(productId) })
-      .sort({ createdAt: -1 })
-      .toArray();
-      
-    if (reviews.length > 0) return reviews;
-  } catch (error) {
-    // If not a valid ObjectId, continue to search by string id
-  }
-  
-  // Fall back to string id
   return db.collection(collections.reviews)
     .find({ productId })
     .sort({ createdAt: -1 })
@@ -390,26 +317,25 @@ export async function updatePayment(id: string, paymentData: any) {
   const db = await getDB();
   const { _id, ...updateData } = paymentData; // Remove _id to avoid errors
   
-  try {
-    return db.collection(collections.payments).updateOne(
-      { _id: toObjectId(id) },
-      { 
-        $set: {
-          ...updateData,
-          updatedAt: new Date()
-        } 
-      }
-    );
-  } catch (error) {
-    // Fall back to string id if not a valid ObjectId
-    return db.collection(collections.payments).updateOne(
-      { id },
-      { 
-        $set: {
-          ...updateData,
-          updatedAt: new Date()
-        } 
-      }
-    );
-  }
+  const updateResult = await db.collection(collections.payments).updateOne(
+    { _id: id },
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
+      } 
+    }
+  );
+  
+  if (updateResult.matchedCount > 0) return updateResult;
+  
+  return db.collection(collections.payments).updateOne(
+    { id },
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
+      } 
+    }
+  );
 }

@@ -87,6 +87,11 @@ const Support = () => {
     });
   };
 
+  const navigateToContact = () => {
+    const contactTab = document.querySelector('[data-value="contact"]') as HTMLElement;
+    if (contactTab) contactTab.click();
+  };
+
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-6">Support Center</h1>
@@ -141,7 +146,7 @@ const Support = () => {
               <p className="text-sm text-muted-foreground">
                 Can't find what you're looking for?
               </p>
-              <Button variant="outline" onClick={() => document.querySelector('[data-value="contact"]')?.click()}>
+              <Button variant="outline" onClick={navigateToContact}>
                 Contact Support
               </Button>
             </CardFooter>

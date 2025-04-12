@@ -1,3 +1,4 @@
+
 import { getDB, collections, toObjectId, createIdFilter, ObjectId, Filter, Document } from '@/lib/mongodb';
 
 // User related operations
@@ -37,7 +38,8 @@ export async function updateUser(id: string, userData: any) {
 // Product related operations
 export async function getAllProducts(filter = {}) {
   const db = await getDB();
-  return db.collection(collections.products).find(filter).toArray();
+  const results = await db.collection(collections.products).find(filter);
+  return results.toArray();
 }
 
 export async function getProductById(id: string) {
@@ -47,7 +49,8 @@ export async function getProductById(id: string) {
 
 export async function getProductsByFarmer(farmerId: string) {
   const db = await getDB();
-  return db.collection(collections.products).find({ farmerId }).toArray();
+  const results = await db.collection(collections.products).find({ farmerId });
+  return results.toArray();
 }
 
 export async function createProduct(productData: any) {
@@ -82,20 +85,21 @@ export async function deleteProduct(id: string) {
 // Order related operations
 export async function getAllOrders(filter = {}) {
   const db = await getDB();
-  return db.collection(collections.orders).find(filter).toArray();
+  const results = await db.collection(collections.orders).find(filter);
+  return results.toArray();
 }
 
 export async function getOrdersByUser(userId: string) {
   const db = await getDB();
-  return db.collection(collections.orders).find({ userId }).toArray();
+  const results = await db.collection(collections.orders).find({ userId });
+  return results.toArray();
 }
 
 export async function getOrdersByFarmer(farmerId: string) {
   const db = await getDB();
   // Get orders containing products from this farmer
-  return db.collection(collections.orders)
-    .find({ 'items.farmerId': farmerId })
-    .toArray();
+  const results = await db.collection(collections.orders).find({ 'items.farmerId': farmerId });
+  return results.toArray();
 }
 
 export async function getOrderById(id: string) {
@@ -149,9 +153,8 @@ export async function updateInventory(productId: string, quantity: number) {
 // Notification related operations
 export async function getNotificationsForUser(userId: string) {
   const db = await getDB();
-  return db.collection(collections.notifications)
-    .find({ userId })
-    .toArray();
+  const results = await db.collection(collections.notifications).find({ userId });
+  return results.toArray();
 }
 
 export async function createNotification(notificationData: any) {
@@ -165,10 +168,8 @@ export async function createNotification(notificationData: any) {
 
 export async function markNotificationAsRead(id: string) {
   const db = await getDB();
-  // Using a direct filter with proper typing
-  const filter: Filter<Document> = { _id: toObjectId(id) };
   return db.collection(collections.notifications).updateOne(
-    filter,
+    { _id: toObjectId(id) },
     { $set: { read: true, updatedAt: new Date() } }
   );
 }
@@ -209,9 +210,8 @@ export async function clearCart(userId: string) {
 // Review related operations
 export async function getReviewsForProduct(productId: string) {
   const db = await getDB();
-  return db.collection(collections.reviews)
-    .find({ productId })
-    .toArray();
+  const results = await db.collection(collections.reviews).find({ productId });
+  return results.toArray();
 }
 
 export async function createReview(reviewData: any) {
@@ -254,9 +254,8 @@ export async function createPayment(paymentData: any) {
 
 export async function getPaymentsByUser(userId: string) {
   const db = await getDB();
-  return db.collection(collections.payments)
-    .find({ userId })
-    .toArray();
+  const results = await db.collection(collections.payments).find({ userId });
+  return results.toArray();
 }
 
 export async function getPaymentByOrderId(orderId: string) {

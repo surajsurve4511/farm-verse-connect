@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -15,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { getUserByEmail, updateUser } from "@/services/dataService";
+import { dataService } from "@/services/serviceFactory";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -39,7 +38,7 @@ const Profile = () => {
           return;
         }
 
-        const userData = await getUserByEmail(userEmail);
+        const userData = await dataService.getUserByEmail(userEmail);
         if (userData) {
           setUser(userData);
           setFormData({
@@ -72,7 +71,7 @@ const Profile = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateUser(user.email, formData);
+      await dataService.updateUser(user.email, formData);
       toast({
         title: "Profile Updated",
         description: "Your profile information has been updated successfully."
@@ -91,7 +90,6 @@ const Profile = () => {
     return <div className="container py-10">Loading profile...</div>;
   }
 
-  // Default avatar fallback - first 2 letters of name
   const avatarFallback = formData.name
     ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
     : "US";

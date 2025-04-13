@@ -11,6 +11,15 @@ const config = {
     timeout: 30000, // 30 seconds
   },
   
+  // Database configuration
+  database: {
+    host: import.meta.env.DB_HOST || 'localhost',
+    port: parseInt(import.meta.env.DB_PORT || '3306'),
+    user: import.meta.env.DB_USER || 'root',
+    password: import.meta.env.DB_PASSWORD || '',
+    name: import.meta.env.DB_NAME || 'smartfarm',
+  },
+  
   // Feature flags
   features: {
     // Set to true when connected to real backend, false for mock data

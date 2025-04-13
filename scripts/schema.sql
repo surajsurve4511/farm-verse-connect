@@ -2,7 +2,7 @@
 -- SmartFarm Direct SQL Schema
 
 -- Create Users Table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE users (
 );
 
 -- Create Farms Table
-CREATE TABLE farms (
+CREATE TABLE IF NOT EXISTS farms (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE farms (
 );
 
 -- Create Categories Table
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -42,7 +42,7 @@ CREATE TABLE categories (
 );
 
 -- Create Products Table
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id VARCHAR(36) PRIMARY KEY,
     farm_id VARCHAR(36) NOT NULL,
     category_id VARCHAR(36) NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE products (
 );
 
 -- Create Orders Table
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
@@ -76,7 +76,7 @@ CREATE TABLE orders (
 );
 
 -- Create Order Items Table
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id VARCHAR(36) PRIMARY KEY,
     order_id VARCHAR(36) NOT NULL,
     product_id VARCHAR(36) NOT NULL,
@@ -89,7 +89,7 @@ CREATE TABLE order_items (
 );
 
 -- Create Reviews Table
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     product_id VARCHAR(36) NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE reviews (
 );
 
 -- Create Cart Table
-CREATE TABLE cart (
+CREATE TABLE IF NOT EXISTS cart (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,7 +110,7 @@ CREATE TABLE cart (
 );
 
 -- Create Cart Items Table
-CREATE TABLE cart_items (
+CREATE TABLE IF NOT EXISTS cart_items (
     id VARCHAR(36) PRIMARY KEY,
     cart_id VARCHAR(36) NOT NULL,
     product_id VARCHAR(36) NOT NULL,

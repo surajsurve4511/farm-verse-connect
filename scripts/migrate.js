@@ -1,9 +1,4 @@
 
-/**
- * Database Migration Script
- * This script will initialize the database with the necessary tables and seed data
- */
-
 import fs from 'fs';
 import path from 'path';
 import mysql from 'mysql2/promise';
@@ -19,7 +14,7 @@ const __dirname = path.dirname(__filename);
 // Database connection configuration
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306', 10),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'smartfarm',

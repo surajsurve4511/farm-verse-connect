@@ -1,410 +1,321 @@
 
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, CreditCard, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+import { 
+  ShoppingCart, 
+  Trash, 
+  Plus, 
+  Minus, 
+  RefreshCw, 
+  ShoppingBag,
+  AlertTriangle
+} from "lucide-react";
+import { toast } from "sonner";
+import { getCurrentUser } from "@/services/authService";
 
-// Sample initial products
-const sampleProducts = [
+// Mock cart items
+const initialCartItems = [
   {
     id: "1",
+    productId: "1",
     name: "Organic Tomatoes",
     price: 4.99,
+    quantity: 2,
     image: "/placeholder.svg",
-    farm: "Green Acres Farm"
+    farm: "Green Valley Organics"
   },
   {
     id: "2",
-    name: "Fresh Lettuce",
+    productId: "2",
+    name: "Fresh Carrots",
     price: 3.49,
+    quantity: 1,
     image: "/placeholder.svg",
-    farm: "Sunny Valley Organics"
+    farm: "Sunshine Acres"
   },
   {
     id: "3",
-    name: "Grass-fed Beef",
-    price: 15.99,
+    productId: "4",
+    name: "Free-Range Eggs",
+    price: 6.49,
+    quantity: 1,
     image: "/placeholder.svg",
-    farm: "Highland Ranch"
-  },
-  {
-    id: "4",
-    name: "Farm Fresh Eggs",
-    price: 5.99,
-    image: "/placeholder.svg",
-    farm: "Happy Hen Farm"
-  },
-  {
-    id: "5",
-    name: "Organic Honey",
-    price: 8.99,
-    image: "/placeholder.svg",
-    farm: "Beehive Gardens"
-  },
+    farm: "Happy Hens"
+  }
 ];
 
-// Cart item type
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  farm: string;
-}
-
 export default function Cart() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const navigate = useNavigate();
+  const [cartItems, setCartItems] = useState(initialCartItems);
   const [promoCode, setPromoCode] = useState("");
+  const [isPromoApplied, setIsPromoApplied] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // Load cart items from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Error parsing cart data:", e);
-        // Initialize with some sample items if parsing fails
-        initializeCartWithSamples();
-      }
-    } else {
-      // Initialize with some sample items for demo
-      initializeCartWithSamples();
-    }
-  }, []);
-
-  // Save cart items to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  // Initialize cart with sample items for demo
-  const initializeCartWithSamples = () => {
-    const initialItems: CartItem[] = [
-      {
-        ...sampleProducts[0],
-        quantity: 2
-      },
-      {
-        ...sampleProducts[2],
-        quantity: 1
-      }
-    ];
-    setCartItems(initialItems);
-    localStorage.setItem('cart', JSON.stringify(initialItems));
-  };
-
+  
+  // Calculate cart totals
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shipping = 5.99;
-  const total = subtotal + shipping - discount;
-
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    
-    setCartItems(cartItems.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
-    
-    toast({
-      title: "Cart updated",
-      description: "Your cart has been updated with the new quantity.",
-    });
+  const shipping = subtotal > 50 ? 0 : 7.99;
+  const tax = subtotal * 0.08; // 8% tax
+  const total = subtotal + shipping + tax - discount;
+  
+  const handleQuantityChange = (id: string, change: number)  => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQuantity = item.quantity + change;
+        if (newQuantity > 0) {
+          return { ...item, quantity: newQuantity };
+        }
+      }
+      return item;
+    }));
   };
-
-  const removeItem = (id: string) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
-    
-    toast({
-      title: "Item removed",
-      description: "The item has been removed from your cart.",
-    });
+  
+  const handleRemoveItem = (id: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+    toast.success("Item removed from cart");
   };
-
-  const addToCart = (product: typeof sampleProducts[0]) => {
-    // Check if item already exists in cart
-    const existingItemIndex = cartItems.findIndex(item => item.id === product.id);
-    
-    if (existingItemIndex !== -1) {
-      // Update quantity if item exists
-      const updatedItems = [...cartItems];
-      updatedItems[existingItemIndex].quantity += 1;
-      setCartItems(updatedItems);
-    } else {
-      // Add new item if it doesn't exist
-      setCartItems([...cartItems, { ...product, quantity: 1 }]);
-    }
-    
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart.`,
-    });
-  };
-
-  const clearCart = () => {
+  
+  const handleClearCart = () => {
     setCartItems([]);
-    setDiscount(0);
     setPromoCode("");
-    
-    toast({
-      title: "Cart cleared",
-      description: "All items have been removed from your cart.",
-    });
+    setIsPromoApplied(false);
+    setDiscount(0);
+    toast.success("Cart cleared");
   };
-
-  const applyPromoCode = () => {
+  
+  const handleApplyPromo = () => {
+    if (!promoCode) return;
+    
     setIsLoading(true);
     
-    // Simulate API call
+    // Simulate API call to validate promo code
     setTimeout(() => {
-      if (promoCode.toLowerCase() === "fresh10") {
-        const discountAmount = subtotal * 0.1;
-        setDiscount(discountAmount);
-        toast({
-          title: "Promo code applied!",
-          description: "10% discount has been applied to your order.",
-        });
+      if (promoCode.toUpperCase() === "FRESH10") {
+        const newDiscount = subtotal * 0.1; // 10% discount
+        setDiscount(newDiscount);
+        setIsPromoApplied(true);
+        toast.success("Promo code applied successfully!");
       } else {
-        toast({
-          title: "Invalid promo code",
-          description: "The promo code you entered is invalid or expired.",
-          variant: "destructive",
-        });
+        toast.error("Invalid promo code");
+        setDiscount(0);
+        setIsPromoApplied(false);
       }
       setIsLoading(false);
     }, 1000);
   };
-
+  
   const handleCheckout = () => {
-    setIsLoading(true);
+    const user = getCurrentUser();
     
-    // Simulate checkout process
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/checkout");
-    }, 1000);
+    if (!user) {
+      toast.error("Please login to continue with checkout", {
+        action: {
+          label: "Login",
+          onClick: () => navigate("/login"),
+        },
+      });
+      return;
+    }
+    
+    navigate("/checkout");
   };
+  
+  if (cartItems.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+        <div className="max-w-2xl mx-auto text-center py-16 border rounded-lg">
+          <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+          <p className="text-muted-foreground mb-8">
+            Looks like you haven't added any items to your cart yet.
+          </p>
+          <Button size="lg" onClick={() => navigate("/marketplace")}>
+            Start Shopping
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8">
-      <div className="container mx-auto px-4">
-        <div className="mb-6">
-          <Link to="/marketplace" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Continue Shopping
-          </Link>
-          <h1 className="text-3xl font-bold mt-2">Your Cart</h1>
-        </div>
-
-        {cartItems.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cart Items ({cartItems.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cartItems.map(item => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="h-16 w-16 rounded-md object-cover"
-                              />
-                              <div>
-                                <div className="font-medium">{item.name}</div>
-                                <div className="text-sm text-muted-foreground">{item.farm}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="mx-2 w-8 text-center">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">${(item.price * item.quantity).toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="mt-4 flex justify-end">
-                    <Button 
-                      variant="outline"
-                      onClick={clearCart}
-                    >
-                      Clear Cart
-                    </Button>
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Items ({cartItems.length})</CardTitle>
+              <Button variant="ghost" size="sm" onClick={handleClearCart} className="text-muted-foreground">
+                <Trash className="h-4 w-4 mr-2" />
+                Clear Cart
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex flex-col sm:flex-row gap-4 py-4 border-b last:border-0 last:pb-0">
+                  <div 
+                    className="w-24 h-24 rounded-md overflow-hidden flex-shrink-0 cursor-pointer"
+                    onClick={() => navigate(`/product/${item.productId}`)}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-              
-              {/* Recommended Products Section */}
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>You Might Also Like</CardTitle>
-                  <CardDescription>
-                    Products based on your current cart items
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {sampleProducts.filter(p => !cartItems.some(item => item.id === p.id)).slice(0, 3).map(product => (
-                      <Card key={product.id}>
-                        <div className="aspect-square">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-medium">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground">{product.farm}</p>
-                          <div className="flex justify-between items-center mt-2">
-                            <span className="font-medium">${product.price.toFixed(2)}</span>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => addToCart(product)}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="sticky top-8">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount</span>
-                      <span>-${discount.toFixed(2)}</span>
+                  <div className="flex-grow">
+                    <div className="flex flex-col sm:flex-row justify-between">
+                      <div>
+                        <h3 
+                          className="font-semibold text-lg cursor-pointer hover:text-primary"
+                          onClick={() => navigate(`/product/${item.productId}`)}
+                        >
+                          {item.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{item.farm}</p>
+                      </div>
+                      <div className="text-right mt-2 sm:mt-0">
+                        <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                      </div>
                     </div>
-                  )}
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-
-                  <div className="pt-4">
-                    <div className="text-sm font-medium mb-2">Promo Code</div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter code"
-                        value={promoCode}
-                        onChange={e => setPromoCode(e.target.value)}
-                      />
-                      <Button 
-                        variant="outline" 
-                        onClick={applyPromoCode}
-                        disabled={isLoading || !promoCode}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center border rounded-md">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none"
+                          onClick={() => handleQuantityChange(item.id, -1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none"
+                          onClick={() => handleQuantityChange(item.id, 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="text-muted-foreground"
                       >
-                        Apply
+                        <Trash className="h-4 w-4 mr-2" />
+                        Remove
                       </Button>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      Try "FRESH10" for 10% off
-                    </div>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleCheckout}
-                    disabled={isLoading || cartItems.length === 0}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    {isLoading ? "Processing..." : "Proceed to Checkout"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-          </div>
-        ) : (
-          <Card className="py-12">
-            <CardContent className="flex flex-col items-center justify-center">
-              <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-              <p className="text-muted-foreground mb-6 text-center max-w-md">
-                Looks like you haven't added anything to your cart yet. Browse our marketplace to find fresh, local produce.
-              </p>
-              <Link to="/marketplace">
-                <Button size="lg">
-                  Browse Marketplace
-                </Button>
-              </Link>
+                </div>
+              ))}
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/marketplace")}
+                className="gap-2"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Continue Shopping
+              </Button>
+              <Button
+                onClick={() => {
+                  setCartItems(initialCartItems);
+                  toast.success("Cart updated");
+                }}
+                variant="outline"
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Update Cart
+              </Button>
+            </CardFooter>
           </Card>
-        )}
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shipping</span>
+                <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tax (8%)</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              
+              {isPromoApplied && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount ({promoCode})</span>
+                  <span>-${discount.toFixed(2)}</span>
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+              
+              {subtotal < 50 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex gap-2 items-start text-sm">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800">Add ${(50 - subtotal).toFixed(2)} more to qualify for free shipping!</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="pt-2">
+                <div className="text-sm font-medium mb-2">Have a promo code?</div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                    disabled={isPromoApplied || isLoading}
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={handleApplyPromo}
+                    disabled={isPromoApplied || !promoCode || isLoading}
+                  >
+                    {isLoading ? "Applying..." : "Apply"}
+                  </Button>
+                </div>
+                {isPromoApplied && (
+                  <p className="text-green-600 text-xs mt-1">
+                    Promo code "{promoCode}" applied successfully!
+                  </p>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleCheckout} className="w-full">
+                Proceed to Checkout
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

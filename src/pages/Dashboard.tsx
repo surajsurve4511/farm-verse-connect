@@ -1,480 +1,321 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { RecentOrders } from "@/components/dashboard/RecentOrders";
-import { Overview } from "@/components/dashboard/Overview";
-import { SalesSummary } from "@/components/dashboard/SalesSummary";
-import { WeatherForecast } from "@/components/dashboard/WeatherForecast";
-import { InventoryStatus } from "@/components/dashboard/InventoryStatus";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShoppingBag, Users, TrendingUp, Truck, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronRight, Package, ShoppingBag, Truck, Clock, BarChart3, Star } from "lucide-react";
+import { getCurrentUser } from "@/services/authService";
+import { toast } from "sonner";
 
 export default function Dashboard() {
-  const [userRole, setUserRole] = useState<"farmer" | "customer" | "admin">("customer");
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   
+  // Mock data for recent orders
+  const recentOrders = [
+    { id: "ORD-1234", date: "2025-04-10", status: "delivered", total: 35.99, items: 3 },
+    { id: "ORD-1235", date: "2025-04-08", status: "shipped", total: 42.50, items: 5 },
+    { id: "ORD-1236", date: "2025-04-05", status: "processing", total: 18.25, items: 2 },
+  ];
+  
+  // Mock data for saved farms
+  const savedFarms = [
+    { id: "1", name: "Green Valley Organics", location: "Riverside, CA", products: 24 },
+    { id: "2", name: "Sunshine Acres", location: "Boulder, CO", products: 18 },
+    { id: "3", name: "Mountain View Farm", location: "Portland, OR", products: 32 },
+  ];
+  
+  // Mock data for recommendations
+  const recommendations = [
+    { id: "1", name: "Organic Strawberries", price: 4.99, farm: "Green Valley Organics", rating: 4.8 },
+    { id: "2", name: "Free-Range Eggs", price: 5.49, farm: "Sunshine Acres", rating: 4.9 },
+    { id: "3", name: "Heirloom Tomatoes", price: 3.99, farm: "Mountain View Farm", rating: 4.7 },
+    { id: "4", name: "Fresh Basil", price: 2.49, farm: "Green Valley Organics", rating: 4.6 },
+  ];
+
   useEffect(() => {
-    // Get stored role from login
-    const role = localStorage.getItem("userRole");
+    // Get current user info
+    const userInfo = getCurrentUser();
+    setUser(userInfo);
+    setIsLoading(false);
     
-    if (!role) {
-      // If no role is found, redirect to login
-      toast({
-        title: "Authentication required",
-        description: "Please log in to access the dashboard.",
-        variant: "destructive",
-      });
+    // Redirect to login if not authenticated
+    if (!userInfo) {
+      toast.error("Please login to access the dashboard");
       navigate("/login");
-      return;
     }
-    
-    // If role is admin, redirect to admin dashboard
-    if (role === "admin") {
-      navigate("/admin");
-      return;
-    }
-    
-    // Set the role state
-    setUserRole(role as "farmer" | "customer");
-  }, [navigate, toast]);
+  }, [navigate]);
 
-  return (
-    <div className="flex flex-col space-y-6 p-6">
-      <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {userRole === "farmer" ? "Farmer Dashboard" : "Customer Dashboard"}
-        </h1>
-        <p className="text-muted-foreground">
-          {userRole === "farmer" 
-            ? "Manage your farm products, view orders, and track your sales."
-            : "Welcome to SmartFarm Direct, your farm-to-consumer marketplace."}
-        </p>
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+        </div>
       </div>
-      
-      {userRole === "farmer" ? (
-        <FarmerDashboard />
-      ) : (
-        <CustomerDashboard />
-      )}
-    </div>
-  );
-}
+    );
+  }
 
-function FarmerDashboard() {
   return (
-    <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="inventory">Inventory</TabsTrigger>
-        <TabsTrigger value="orders">Orders</TabsTrigger>
-        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Revenue
-              </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$15,231.89</div>
-              <p className="text-xs text-muted-foreground">
-                +20.1% from last month
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Products Sold
-              </CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+573</div>
-              <p className="text-xs text-muted-foreground">
-                +12% from last month
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">24</div>
-              <p className="text-xs text-muted-foreground">
-                +4 since yesterday
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Inventory Status
-              </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M3 2h.01" />
-                <path d="M7 2h.01" />
-                <path d="M11 2h.01" />
-                <path d="M15 2h.01" />
-                <path d="M19 2h.01" />
-                <path d="M3 6h.01" />
-                <path d="M7 6h.01" />
-                <path d="M11 6h.01" />
-                <path d="M15 6h.01" />
-                <path d="M19 6h.01" />
-                <path d="M3 10h.01" />
-                <path d="M7 10h.01" />
-                <path d="M11 10h.01" />
-                <path d="M15 10h.01" />
-                <path d="M19 10h.01" />
-                <path d="M3 14h.01" />
-                <path d="M7 14h.01" />
-                <path d="M11 14h.01" />
-                <path d="M15 14h.01" />
-                <path d="M19 14h.01" />
-                <path d="M3 18h.01" />
-                <path d="M7 18h.01" />
-                <path d="M11 18h.01" />
-                <path d="M15 18h.01" />
-                <path d="M19 18h.01" />
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">86%</div>
-              <p className="text-xs text-muted-foreground">
-                5 products low in stock
-              </p>
-            </CardContent>
-          </Card>
+    <div className="container mx-auto p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome back, {user?.name || "Customer"}</h1>
+          <p className="text-muted-foreground">Here's what's happening with your account</p>
         </div>
-        
-        <Alert className="bg-amber-50 text-amber-800 border-amber-300">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Weather Alert</AlertTitle>
-          <AlertDescription>
-            Incoming rain forecasted for the next 3 days. Consider adjusting harvest schedules.
-          </AlertDescription>
-        </Alert>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Sales Overview</CardTitle>
-              <CardDescription>
-                Monthly sales performance and comparisons
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <Overview />
-            </CardContent>
-          </Card>
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>
-                Your recent order activity
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentOrders />
-            </CardContent>
-          </Card>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate("/marketplace")}>
+            Browse Products
+          </Button>
+          <Button onClick={() => navigate("/orders")}>View Orders</Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Weather Forecast</CardTitle>
-              <CardDescription>
-                5-day forecast for your farm location
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WeatherForecast />
-            </CardContent>
-          </Card>
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Inventory Status</CardTitle>
-              <CardDescription>
-                Current inventory levels and alerts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InventoryStatus />
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="inventory" className="space-y-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Inventory Management</CardTitle>
-              <CardDescription>
-                Manage your product inventory levels and stock
-              </CardDescription>
-            </div>
-            <Button>Add New Product</Button>
-          </CardHeader>
-          <CardContent>
-            <SalesSummary />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="orders" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Orders</CardTitle>
-            <CardDescription>
-              View and manage customer orders for your products
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentOrders fullView={true} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="analytics" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales Analytics</CardTitle>
-            <CardDescription>
-              Detailed analytics for your farm products
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Detailed analytics content will be displayed here.</p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
-  );
-}
+      </div>
 
-function CustomerDashboard() {
-  const navigate = useNavigate();
-  
-  return (
-    <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="orders">My Orders</TabsTrigger>
-        <TabsTrigger value="favorites">Favorites</TabsTrigger>
-        <TabsTrigger value="profile">Profile</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Spent
-              </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$342.50</div>
-              <p className="text-xs text-muted-foreground">
-                +5.4% from last month
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Orders Placed
-              </CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">
-                +2 from last month
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Farms Supported</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">5</div>
-              <p className="text-xs text-muted-foreground">
-                Local farmers in your area
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Environmental Impact
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">28 lbs</div>
-              <p className="text-xs text-muted-foreground">
-                CO₂ emissions reduced
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Your recent purchases and interactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <Overview />
-            </CardContent>
-          </Card>
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>
-                Your recent order history
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentOrders />
-            </CardContent>
-          </Card>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Featured Products</CardTitle>
-            <CardDescription>
-              Recommended products based on your purchase history
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <Card key={item}>
-                <div className="aspect-square relative">
-                  <img
-                    src="/placeholder.svg"
-                    alt="Featured product"
-                    className="object-cover w-full h-full"
-                  />
+      <Tabs defaultValue="overview" onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="favorites">Favorites</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6 flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-muted-foreground">Total Orders</p>
+                  <h3 className="text-3xl font-bold">12</h3>
                 </div>
-                <CardContent className="p-4">
-                  <h3 className="font-medium">Featured Product {item}</h3>
-                  <p className="text-sm text-muted-foreground">Local Farm</p>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="font-medium">$12.99</span>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => navigate("/marketplace")}
-                    >
-                      Shop Now
-                    </Button>
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ShoppingBag className="h-6 w-6 text-primary" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6 flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-muted-foreground">Pending Delivery</p>
+                  <h3 className="text-3xl font-bold">2</h3>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <Truck className="h-6 w-6 text-amber-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6 flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-muted-foreground">Saved Farms</p>
+                  <h3 className="text-3xl font-bold">3</h3>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Star className="h-6 w-6 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6 flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-muted-foreground">Total Spent</p>
+                  <h3 className="text-3xl font-bold">$248.50</h3>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>Your latest 3 orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentOrders.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                          order.status === 'delivered' ? 'bg-green-100 text-green-600' : 
+                          order.status === 'shipped' ? 'bg-blue-100 text-blue-600' : 
+                          'bg-amber-100 text-amber-600'
+                        }`}>
+                          {order.status === 'delivered' ? (
+                            <Package className="h-5 w-5" />
+                          ) : order.status === 'shipped' ? (
+                            <Truck className="h-5 w-5" />
+                          ) : (
+                            <Clock className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{order.id}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {order.items} {order.items === 1 ? 'item' : 'items'} • {new Date(order.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${order.total.toFixed(2)}</p>
+                        <p className="text-sm capitalize text-muted-foreground">{order.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/orders")}>
+                  View all orders <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Recommended For You</CardTitle>
+                <CardDescription>Based on your previous orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recommendations.slice(0, 3).map((product) => (
+                    <div key={product.id} className="flex items-center gap-3 border-b pb-4 last:border-0 last:pb-0">
+                      <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{product.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{product.farm}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${product.price.toFixed(2)}</p>
+                        <div className="flex items-center text-sm text-amber-500">
+                          <Star className="h-3 w-3 fill-amber-500" />
+                          <span className="ml-1">{product.rating}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/marketplace")}>
+                  View all products <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order History</CardTitle>
+              <CardDescription>
+                View and track all your orders
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{order.id}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' : 
+                              'bg-amber-100 text-amber-800'
+                            }`}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Ordered on {new Date(order.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm mt-1">
+                            {order.items} {order.items === 1 ? 'item' : 'items'} • ${order.total.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
+                            View Details
+                          </Button>
+                          {order.status === 'delivered' && (
+                            <Button size="sm">Write Review</Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-medium">No orders yet</h3>
+                    <p className="text-muted-foreground">When you place an order, it will appear here</p>
+                    <Button className="mt-4" onClick={() => navigate("/marketplace")}>Start Shopping</Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="orders" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order History</CardTitle>
-            <CardDescription>
-              View and track all your previous orders
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentOrders fullView={true} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="favorites" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Favorite Products</CardTitle>
-            <CardDescription>
-              Products and farms you've saved as favorites
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="py-4 text-center text-muted-foreground">
-              You haven't saved any favorites yet. Browse the marketplace to find products you love!
-            </p>
-            <div className="flex justify-center">
-              <Button onClick={() => navigate("/marketplace")}>Browse Marketplace</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="profile" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Settings</CardTitle>
-            <CardDescription>
-              Manage your account preferences and settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Your profile settings and preferences will appear here.</p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center md:justify-end">
+              <Button variant="outline" onClick={() => navigate("/orders")}>View All Orders</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="favorites">
+          <Card>
+            <CardHeader>
+              <CardTitle>Saved Farms</CardTitle>
+              <CardDescription>
+                Farms you follow and buy from regularly
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedFarms.map((farm) => (
+                  <Card key={farm.id} className="overflow-hidden">
+                    <div className="h-32 bg-muted flex items-center justify-center">
+                      <img 
+                        src={`/placeholder.svg`} 
+                        alt={farm.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-lg">{farm.name}</h3>
+                      <p className="text-sm text-muted-foreground">{farm.location}</p>
+                      <p className="text-sm mt-2">{farm.products} products available</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-4"
+                        onClick={() => navigate(`/farm/${farm.id}`)}
+                      >
+                        Visit Farm
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center md:justify-end">
+              <Button variant="outline" onClick={() => navigate("/farms")}>Explore All Farms</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

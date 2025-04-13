@@ -1,28 +1,30 @@
 
 /**
  * Service Factory
- * This factory determines whether to use mock services or production services
- * based on configuration
+ * This module handles the creation and export of service instances
+ * based on the environment (production/development)
  */
 
-import config from '../config';
-
-// Import mock services (for development/testing)
-import * as mockDataService from './dataService';
-import * as mockAuthService from './authService';
-
-// Import production services (for real backend)
-import * as productionDataService from './productionDataService';
 import * as productionAuthService from './productionAuthService';
+import * as productionDataService from './productionDataService';
+import * as authServiceImpl from './authService';
+import * as dataServiceImpl from './dataService';
 
-// Export the appropriate service based on configuration
-export const dataService = config.features.useProductionApi 
-  ? productionDataService 
-  : mockDataService;
+// Determine if we should use production services
+const useProductionServices = import.meta.env.VITE_USE_PRODUCTION_SERVICES === 'true';
 
-export const authService = config.features.useProductionApi
-  ? productionAuthService
-  : mockAuthService;
+// Export the appropriate service implementations
+export const authService = useProductionServices ? productionAuthService : authServiceImpl;
+export const dataService = useProductionServices ? productionDataService : dataServiceImpl;
 
-// Helper function to check if we're using production services
-export const isUsingProductionServices = () => config.features.useProductionApi;
+// Export a function to get the right service based on environment
+export function getService(name: 'auth' | 'data') {
+  switch (name) {
+    case 'auth':
+      return authService;
+    case 'data':
+      return dataService;
+    default:
+      throw new Error(`Unknown service: ${name}`);
+  }
+}

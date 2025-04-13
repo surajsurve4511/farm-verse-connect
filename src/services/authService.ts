@@ -37,9 +37,9 @@ try {
 const adminUser = {
   _id: "admin123",
   id: "admin123",
-  email: "surajsurve5411@gmail.com",
-  password: "password-suraj", // In production, this would be hashed
-  name: "Suraj Surve",
+  email: "admin@example.com",
+  password: "adminpassword123", // In production, this would be hashed
+  name: "Admin User",
   role: "admin"
 };
 
@@ -214,5 +214,5 @@ export async function register(userData: any) {
   }
 }
 
-// Import at the top but implement at the bottom to avoid circular dependencies
+// Import at the bottom but implement at the bottom to avoid circular dependencies
 import { createUser } from './dataService';

@@ -3,6 +3,16 @@ import { getUserByEmail } from './dataService';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 
+// Hardcoded admin user for local development
+const adminUser = {
+  _id: "admin123",
+  id: "admin123",
+  email: "surajsurve5411@gmail.com",
+  password: "password-suraj", // In production, this would be hashed
+  name: "Suraj Surve",
+  role: "admin"
+};
+
 // Password hashing function using bcrypt
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
@@ -17,6 +27,30 @@ export async function comparePassword(password: string, hashedPassword: string):
 // Login function
 export async function login(email: string, password: string) {
   try {
+    // Special case for admin user
+    if (email === adminUser.email && password === adminUser.password) {
+      // Generate session token
+      const sessionToken = uuidv4();
+      
+      // Store user info in localStorage
+      localStorage.setItem('userEmail', adminUser.email);
+      localStorage.setItem('userRole', adminUser.role);
+      localStorage.setItem('userName', adminUser.name);
+      localStorage.setItem('userId', adminUser.id);
+      localStorage.setItem('sessionToken', sessionToken);
+      
+      return {
+        success: true,
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          role: adminUser.role,
+          name: adminUser.name
+        }
+      };
+    }
+    
+    // For other users, get from database
     const user = await getUserByEmail(email);
     
     if (!user) {

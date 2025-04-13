@@ -9,47 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, Users, Truck, ShoppingBag, AlertCircle, BarChart3 } from "lucide-react";
-
-// Sample farmers and customers data for admin view
-const sampleFarmers = [
-  { id: "f1", name: "Green Acres Farm", email: "farmer@example.com", products: 24, revenue: 15231.89, status: "active" },
-  { id: "f2", name: "Highland Ranch", email: "highland@farms.com", products: 18, revenue: 9450.50, status: "active" },
-  { id: "f3", name: "Sunny Valley Organics", email: "info@sunnyvalley.org", products: 12, revenue: 7820.25, status: "pending" },
-];
-
-const sampleCustomers = [
-  { id: "c1", name: "John Smith", email: "customer@example.com", orders: 8, spent: 342.50, status: "active" },
-  { id: "c2", name: "Emily Johnson", email: "emily@example.com", orders: 12, spent: 523.75, status: "active" },
-  { id: "c3", name: "Michael Brown", email: "michael@example.com", orders: 5, spent: 189.99, status: "inactive" },
-];
-
-// Sample orders for admin view
-const sampleOrders = [
-  { id: "ord-1001", customer: "John Smith", items: 3, total: 89.97, status: "completed", date: "2025-04-05" },
-  { id: "ord-1002", customer: "Emily Johnson", items: 5, total: 145.50, status: "processing", date: "2025-04-06" },
-  { id: "ord-1003", customer: "Michael Brown", items: 2, total: 59.98, status: "cancelled", date: "2025-04-04" },
-  { id: "ord-1004", customer: "Sarah Wilson", items: 4, total: 112.75, status: "shipped", date: "2025-04-03" },
-  { id: "ord-1005", customer: "David Lee", items: 1, total: 29.99, status: "pending", date: "2025-04-07" },
-];
-
-// Helper function to display order status with a colored badge
-const getOrderStatusBadge = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return <Badge className="bg-green-500">Completed</Badge>;
-    case "processing":
-      return <Badge className="bg-blue-500">Processing</Badge>;
-    case "pending":
-      return <Badge className="bg-yellow-500">Pending</Badge>;
-    case "shipped":
-      return <Badge className="bg-purple-500">Shipped</Badge>;
-    case "cancelled":
-      return <Badge variant="destructive">Cancelled</Badge>;
-    default:
-      return <Badge>{status}</Badge>;
-  }
-};
+import { ShieldCheck, Users, Truck, ShoppingBag, AlertCircle, BarChart3, Database, Settings } from "lucide-react";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -92,9 +52,9 @@ export default function Admin() {
   };
 
   return (
-    <div className="flex flex-col space-y-6 p-6">
+    <div className="flex flex-col space-y-6 p-6 bg-gradient-to-br from-background to-background/90">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight text-gradient">
           Admin Dashboard
         </h1>
         <p className="text-muted-foreground">
@@ -103,57 +63,57 @@ export default function Admin() {
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="glass-card border-0 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Farmers
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +5 new registrations this month
+              Ready to onboard new farmers
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card border-0 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Customers
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">158</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              Ready for customer acquisition
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card border-0 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
+            <Truck className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">47</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              +8 since yesterday
+              No pending orders
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card border-0 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Platform Revenue
             </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <BarChart3 className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$5,240.89</div>
+            <div className="text-2xl font-bold">$0.00</div>
             <p className="text-xs text-muted-foreground">
-              +15.3% from last month
+              Ready to start tracking revenue
             </p>
           </CardContent>
         </Card>
@@ -161,12 +121,12 @@ export default function Admin() {
       
       <Alert
         title="System Notification"
-        description="New farmer verification requests are pending approval. Please review them in the Farmers tab."
+        description="Welcome to the SmartFarm Direct admin dashboard. This system is ready for real-world implementation."
         variant="info"
       />
       
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <TabsList className="bg-background/50 backdrop-blur-sm">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="farmers">Farmers</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
@@ -175,103 +135,143 @@ export default function Admin() {
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
-          <Card>
+          <Card className="glass-card border-0">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>System Status</CardTitle>
               <CardDescription>
-                Recent platform activities and notifications
+                Current platform status and recent activities
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="border-l-4 border-blue-500 pl-4 py-2">
-                  <p className="font-medium">New farmer registration</p>
-                  <p className="text-sm text-muted-foreground">Organic Fields Farm just registered and needs approval.</p>
-                  <p className="text-xs text-muted-foreground">10 minutes ago</p>
+                <div className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Database className="h-5 w-5 text-green-500" />
+                    <div>
+                      <h3 className="font-medium">Database Connected</h3>
+                      <p className="text-sm text-muted-foreground">System is ready to store data</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-500">Active</Badge>
                 </div>
-                <div className="border-l-4 border-yellow-500 pl-4 py-2">
-                  <p className="font-medium">Order dispute reported</p>
-                  <p className="text-sm text-muted-foreground">Customer reported issue with order #ORD-1042. Requires review.</p>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
+                
+                <div className="flex items-center justify-between p-4 bg-blue-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Settings className="h-5 w-5 text-blue-500" />
+                    <div>
+                      <h3 className="font-medium">System Configuration</h3>
+                      <p className="text-sm text-muted-foreground">All systems are properly configured</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-blue-500">Ready</Badge>
                 </div>
-                <div className="border-l-4 border-green-500 pl-4 py-2">
-                  <p className="font-medium">Payment processed</p>
-                  <p className="text-sm text-muted-foreground">Monthly commission payments processed for 28 farmers.</p>
-                  <p className="text-xs text-muted-foreground">3 hours ago</p>
-                </div>
-                <div className="border-l-4 border-purple-500 pl-4 py-2">
-                  <p className="font-medium">System update scheduled</p>
-                  <p className="text-sm text-muted-foreground">Platform maintenance scheduled for April 10, 2025 at 2:00 AM.</p>
-                  <p className="text-xs text-muted-foreground">Yesterday</p>
+                
+                <div className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-5 w-5 text-yellow-500" />
+                    <div>
+                      <h3 className="font-medium">Security Status</h3>
+                      <p className="text-sm text-muted-foreground">Authentication system active</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-yellow-500">Secure</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="glass-card border-0">
               <CardHeader>
-                <CardTitle>Latest Orders</CardTitle>
+                <CardTitle>Implementation Guide</CardTitle>
                 <CardDescription>
-                  Most recent orders placed on the platform
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sampleOrders.slice(0, 5).map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{order.customer}</TableCell>
-                        <TableCell>{getOrderStatusBadge(order.status)}</TableCell>
-                        <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="mt-4 flex justify-center">
-                  <Button variant="outline" size="sm">View All Orders</Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>New Users</CardTitle>
-                <CardDescription>
-                  Recent user registrations pending verification
+                  Steps to complete the platform implementation
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b pb-4">
+                  <div className="flex gap-3 p-3 border border-border rounded-lg">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">1</div>
                     <div>
-                      <p className="font-medium">Organic Fields Farm</p>
-                      <p className="text-sm text-muted-foreground">Farmer - organicfields@example.com</p>
+                      <h3 className="font-medium">Setup Database Connection</h3>
+                      <p className="text-sm text-muted-foreground">Configure your SQL database connection</p>
                     </div>
-                    <Button size="sm">Verify</Button>
                   </div>
-                  <div className="flex items-center justify-between border-b pb-4">
+                  
+                  <div className="flex gap-3 p-3 border border-border rounded-lg">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">2</div>
                     <div>
-                      <p className="font-medium">Robert Johnson</p>
-                      <p className="text-sm text-muted-foreground">Customer - robert@example.com</p>
+                      <h3 className="font-medium">Create Database Schema</h3>
+                      <p className="text-sm text-muted-foreground">Run the database migration scripts</p>
                     </div>
-                    <Button size="sm">Verify</Button>
                   </div>
-                  <div className="flex items-center justify-between border-b pb-4">
+                  
+                  <div className="flex gap-3 p-3 border border-border rounded-lg">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">3</div>
                     <div>
-                      <p className="font-medium">Sunrise Dairy</p>
-                      <p className="text-sm text-muted-foreground">Farmer - info@sunrisedairy.com</p>
+                      <h3 className="font-medium">Configure API Endpoints</h3>
+                      <p className="text-sm text-muted-foreground">Set up the backend service connections</p>
                     </div>
-                    <Button size="sm">Verify</Button>
+                  </div>
+                  
+                  <div className="flex gap-3 p-3 border border-border rounded-lg">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">4</div>
+                    <div>
+                      <h3 className="font-medium">Deploy Application</h3>
+                      <p className="text-sm text-muted-foreground">Deploy your application to production</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card border-0">
+              <CardHeader>
+                <CardTitle>System Resources</CardTitle>
+                <CardDescription>
+                  Current resource utilization
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">CPU Usage</span>
+                      <span className="text-sm text-muted-foreground">15%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '15%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Memory Usage</span>
+                      <span className="text-sm text-muted-foreground">25%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '25%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Storage Usage</span>
+                      <span className="text-sm text-muted-foreground">5%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-purple-500 h-2.5 rounded-full" style={{ width: '5%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Bandwidth</span>
+                      <span className="text-sm text-muted-foreground">8%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div className="bg-yellow-500 h-2.5 rounded-full" style={{ width: '8%' }}></div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -280,7 +280,7 @@ export default function Admin() {
         </TabsContent>
         
         <TabsContent value="farmers" className="space-y-4">
-          <Card>
+          <Card className="glass-card border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Farmer Management</CardTitle>
@@ -294,66 +294,25 @@ export default function Admin() {
                   placeholder="Search farmers..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-background/50"
                 />
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Products</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sampleFarmers.map((farmer) => (
-                    <TableRow key={farmer.id}>
-                      <TableCell className="font-medium">{farmer.name}</TableCell>
-                      <TableCell>{farmer.email}</TableCell>
-                      <TableCell>{farmer.products}</TableCell>
-                      <TableCell>${farmer.revenue.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {farmer.status === "active" ? (
-                          <Badge className="bg-green-500">Active</Badge>
-                        ) : (
-                          <Badge className="bg-yellow-500">Pending</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {farmer.status === "pending" ? (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleApproveUser(farmer.id)}
-                            >
-                              Approve
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleSuspendUser(farmer.id)}
-                            >
-                              Suspend
-                            </Button>
-                          )}
-                          <Button size="sm" variant="outline">View</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="text-center py-10">
+                <ShoppingBag className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No farmers registered yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  When farmers register on the platform, they will appear here.
+                </p>
+                <Button variant="outline">Add Farmer Manually</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="customers" className="space-y-4">
-          <Card>
+          <Card className="glass-card border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Customer Management</CardTitle>
@@ -367,66 +326,25 @@ export default function Admin() {
                   placeholder="Search customers..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-background/50"
                 />
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Total Spent</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sampleCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.email}</TableCell>
-                      <TableCell>{customer.orders}</TableCell>
-                      <TableCell>${customer.spent.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {customer.status === "active" ? (
-                          <Badge className="bg-green-500">Active</Badge>
-                        ) : (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {customer.status === "inactive" ? (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleApproveUser(customer.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleSuspendUser(customer.id)}
-                            >
-                              Suspend
-                            </Button>
-                          )}
-                          <Button size="sm" variant="outline">View</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="text-center py-10">
+                <Users className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No customers registered yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  When customers register on the platform, they will appear here.
+                </p>
+                <Button variant="outline">Add Customer Manually</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="orders" className="space-y-4">
-          <Card>
+          <Card className="glass-card border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Order Management</CardTitle>
@@ -440,47 +358,25 @@ export default function Admin() {
                   placeholder="Search orders..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-background/50"
                 />
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sampleOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>{order.items}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>{getOrderStatusBadge(order.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline">Details</Button>
-                          <Button size="sm" variant="outline">Update</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="text-center py-10">
+                <ShoppingBag className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No orders placed yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  When orders are placed on the platform, they will appear here.
+                </p>
+                <Button variant="outline">Create Test Order</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="settings" className="space-y-4">
-          <Card>
+          <Card className="glass-card border-0">
             <CardHeader>
               <CardTitle>Platform Settings</CardTitle>
               <CardDescription>
@@ -492,15 +388,15 @@ export default function Admin() {
                 <div>
                   <h3 className="text-lg font-medium">Commission Settings</h3>
                   <div className="mt-2 space-y-2">
-                    <div className="flex justify-between items-center border-b pb-2">
+                    <div className="flex justify-between items-center border-b border-border pb-2">
                       <span>Default commission rate</span>
                       <span className="font-medium">10%</span>
                     </div>
-                    <div className="flex justify-between items-center border-b pb-2">
+                    <div className="flex justify-between items-center border-b border-border pb-2">
                       <span>High-volume discount rate</span>
                       <span className="font-medium">8%</span>
                     </div>
-                    <div className="flex justify-between items-center border-b pb-2">
+                    <div className="flex justify-between items-center border-b border-border pb-2">
                       <span>New farmer introductory rate</span>
                       <span className="font-medium">5%</span>
                     </div>
@@ -557,19 +453,19 @@ function Alert({
   description: string; 
   variant?: "default" | "destructive" | "info"; 
 }) {
-  let bgColor = "bg-background";
+  let bgColor = "bg-card/50 backdrop-blur-md";
   let icon = <AlertCircle className="h-4 w-4" />;
   
   if (variant === "destructive") {
-    bgColor = "bg-red-50 text-red-900 border-red-200";
-    icon = <AlertCircle className="h-4 w-4 text-red-900" />;
+    bgColor = "bg-red-500/10 text-red-600";
+    icon = <AlertCircle className="h-4 w-4 text-red-600" />;
   } else if (variant === "info") {
-    bgColor = "bg-blue-50 text-blue-900 border-blue-200";
-    icon = <ShieldCheck className="h-4 w-4 text-blue-900" />;
+    bgColor = "bg-blue-500/10 text-blue-600";
+    icon = <ShieldCheck className="h-4 w-4 text-blue-600" />;
   }
   
   return (
-    <div className={`flex items-center gap-4 rounded-lg border p-4 ${bgColor}`}>
+    <div className={`flex items-center gap-4 rounded-lg border border-white/10 p-4 ${bgColor}`}>
       {icon}
       <div className="flex-1">
         <div className="font-medium">{title}</div>

@@ -14,7 +14,7 @@ const config = {
   // Feature flags
   features: {
     // Set to true when connected to real backend, false for mock data
-    useProductionApi: import.meta.env.VITE_USE_PRODUCTION_API === 'true',
+    useProductionApi: import.meta.env.VITE_USE_PRODUCTION_API === 'true' || true,
   },
   
   // Auth configuration

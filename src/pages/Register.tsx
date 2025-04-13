@@ -48,8 +48,16 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      // Use only parameters expected by the authService.register method
-      await authService.register(values.email, values.password);
+      // Create a user object with all the required fields
+      const userData = {
+        email: values.email,
+        password: values.password,
+        name: values.name,
+        role: values.accountType
+      };
+      
+      // Pass the userData object to the register function
+      await authService.register(userData);
       
       toast.success("Registration successful!");
       

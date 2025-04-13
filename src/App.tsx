@@ -8,18 +8,31 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import RegisterPending from "./pages/RegisterPending";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import ProductDetail from "./pages/ProductDetail";
 import Orders from "./pages/Orders";
 import Marketplace from "./pages/Marketplace";
+import Farms from "./pages/Farms";
+import FarmDetail from "./pages/FarmDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/AdminDashboard";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import AddProduct from "./pages/AddProduct";
+import EditProduct from "./pages/EditProduct";
+import PriceAdvisor from "./pages/PriceAdvisor";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Support from "./pages/Support";
 import Messages from "./pages/Messages";
+import CategoryProducts from "./pages/CategoryProducts";
 import { ChatBot } from "./components/ai/ChatBot";
 import { connectToMongoDB, initializeDatabase } from "./lib/mongodb";
 import { toast } from "sonner";
@@ -123,13 +136,22 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/register/pending" element={<RegisterPending />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/success" element={<CheckoutSuccess />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/farms" element={<Farms />} />
+            <Route path="/farm/:id" element={<FarmDetail />} />
+            <Route path="/category/:category" element={<CategoryProducts />} />
             
-            {/* Admin route */}
+            {/* Admin routes */}
             <Route 
               path="/admin" 
               element={
@@ -137,6 +159,58 @@ const App = () => {
                   <AdminRoute>
                     <Admin />
                   </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Farmer routes */}
+            <Route 
+              path="/farmer/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <FarmerRoute>
+                    <FarmerDashboard />
+                  </FarmerRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/farmer/products/new" 
+              element={
+                <ProtectedRoute>
+                  <FarmerRoute>
+                    <AddProduct />
+                  </FarmerRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/farmer/products/edit/:id" 
+              element={
+                <ProtectedRoute>
+                  <FarmerRoute>
+                    <EditProduct />
+                  </FarmerRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/farmer/price-advisor" 
+              element={
+                <ProtectedRoute>
+                  <FarmerRoute>
+                    <PriceAdvisor />
+                  </FarmerRoute>
                 </ProtectedRoute>
               } 
             />

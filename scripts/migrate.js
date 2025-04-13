@@ -4,10 +4,17 @@
  * This script will initialize the database with the necessary tables and seed data
  */
 
-const fs = require('fs');
-const path = require('path');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import mysql from 'mysql2/promise';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Get current file's directory (ES modules don't have __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Database connection configuration
 const dbConfig = {

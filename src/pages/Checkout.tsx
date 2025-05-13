@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -12,17 +11,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Check, Truck, Box, MapPin, Clock } from "lucide-react";
-
-// Cart item type
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  farm: string;
-}
+import { ArrowLeft, CreditCard, Check, Truck, Box, MapPin, Clock, AlertCircle } from "lucide-react";
+import { getCartItems, clearCart, CartItem } from "@/lib/cart";
+import { processPayment, validatePaymentInfo } from "@/services/paymentService";
+import { createOrderAPI } from "@/services/apiService";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -34,6 +27,7 @@ export default function Checkout() {
   const [trackingStatus, setTrackingStatus] = useState("processing");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orderNumber, setOrderNumber] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Form state
   const [shippingInfo, setShippingInfo] = useState({
@@ -58,15 +52,19 @@ export default function Checkout() {
 
   // Load cart items from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Error parsing cart data:", e);
-      }
+    const items = getCartItems();
+    setCartItems(items);
+    
+    // If cart is empty, redirect to cart page
+    if (items.length === 0) {
+      toast({
+        title: "Your cart is empty",
+        description: "Please add items to your cart before proceeding to checkout.",
+        variant: "destructive"
+      });
+      navigate('/cart');
     }
-  }, []);
+  }, [navigate, toast]);
 
   // Calculate order summary
   const orderSummary = {
@@ -87,6 +85,15 @@ export default function Checkout() {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
+    
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
   const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,28 +102,120 @@ export default function Checkout() {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
+    
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
-  const handlePlaceOrder = () => {
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Validate shipping info
+    if (!shippingInfo.firstName) errors.firstName = "First name is required";
+    if (!shippingInfo.lastName) errors.lastName = "Last name is required";
+    if (!shippingInfo.email) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(shippingInfo.email)) {
+      errors.email = "Email is invalid";
+    }
+    if (!shippingInfo.phone) errors.phone = "Phone number is required";
+    if (!shippingInfo.address) errors.address = "Address is required";
+    if (!shippingInfo.city) errors.city = "City is required";
+    if (!shippingInfo.state) errors.state = "State is required";
+    if (!shippingInfo.zipCode) errors.zipCode = "ZIP code is required";
+    
+    // Validate payment info if paying by card
+    if (paymentMethod === "card") {
+      const paymentValidation = validatePaymentInfo(paymentInfo);
+      if (!paymentValidation.valid && paymentValidation.errors) {
+        Object.assign(errors, paymentValidation.errors);
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!validateForm()) {
+      toast({
+        title: "Please fix the errors",
+        description: "There are issues with your information. Please correct them before placing your order.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Generate random order number
-    const newOrderNumber = `FSD-${Math.floor(100000 + Math.random() * 900000)}`;
-    setOrderNumber(newOrderNumber);
-    
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsLoading(false);
-      setOrderComplete(true);
+    try {
+      // Process payment
+      const paymentResult = await processPayment(
+        cartItems,
+        shippingInfo,
+        paymentInfo,
+        orderSummary.total
+      );
+      
+      if (!paymentResult.success) {
+        toast({
+          title: "Payment failed",
+          description: paymentResult.error || "There was a problem processing your payment. Please try again.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Set order number from payment result
+      setOrderNumber(paymentResult.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`);
       
       // Clear cart after successful order
-      localStorage.removeItem('cart');
+      clearCart();
+      
+      // Optional: Create order in database
+      try {
+        // This would typically send the order to your backend API
+        // await createOrderAPI({
+        //   orderId: paymentResult.orderId,
+        //   customer: {
+        //     firstName: shippingInfo.firstName,
+        //     lastName: shippingInfo.lastName,
+        //     email: shippingInfo.email,
+        //     phone: shippingInfo.phone,
+        //     address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} ${shippingInfo.zipCode}`
+        //   },
+        //   items: cartItems,
+        //   total: orderSummary.total,
+        //   status: 'processing'
+        // });
+      } catch (error) {
+        console.error("Error saving order:", error);
+        // We don't want to stop the checkout process if this fails
+      }
+      
+      setIsLoading(false);
+      setOrderComplete(true);
       
       toast({
         title: "Order placed successfully!",
         description: "Thank you for your purchase. Your order has been confirmed.",
       });
-    }, 2000);
+    } catch (error) {
+      console.error("Checkout error:", error);
+      setIsLoading(false);
+      toast({
+        title: "Something went wrong",
+        description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleTrackOrder = () => {
@@ -346,93 +445,141 @@ export default function Checkout() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName" className={validationErrors.firstName ? "text-destructive" : ""}>
+                      First Name {validationErrors.firstName && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="firstName" 
                       name="firstName"
                       value={shippingInfo.firstName}
                       onChange={handleShippingChange}
+                      className={validationErrors.firstName ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.firstName && (
+                      <p className="text-destructive text-sm">{validationErrors.firstName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName" className={validationErrors.lastName ? "text-destructive" : ""}>
+                      Last Name {validationErrors.lastName && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="lastName" 
                       name="lastName"
                       value={shippingInfo.lastName}
                       onChange={handleShippingChange}
+                      className={validationErrors.lastName ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.lastName && (
+                      <p className="text-destructive text-sm">{validationErrors.lastName}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className={validationErrors.email ? "text-destructive" : ""}>
+                      Email Address {validationErrors.email && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="email" 
                       name="email"
                       type="email"
                       value={shippingInfo.email}
                       onChange={handleShippingChange}
+                      className={validationErrors.email ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.email && (
+                      <p className="text-destructive text-sm">{validationErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone" className={validationErrors.phone ? "text-destructive" : ""}>
+                      Phone Number {validationErrors.phone && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="phone" 
                       name="phone"
                       type="tel"
                       value={shippingInfo.phone}
                       onChange={handleShippingChange}
+                      className={validationErrors.phone ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.phone && (
+                      <p className="text-destructive text-sm">{validationErrors.phone}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Street Address</Label>
+                  <Label htmlFor="address" className={validationErrors.address ? "text-destructive" : ""}>
+                    Street Address {validationErrors.address && <span className="text-destructive">*</span>}
+                  </Label>
                   <Input 
                     id="address" 
                     name="address"
                     value={shippingInfo.address}
                     onChange={handleShippingChange}
+                    className={validationErrors.address ? "border-destructive" : ""}
                     required
                   />
+                  {validationErrors.address && (
+                    <p className="text-destructive text-sm">{validationErrors.address}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="col-span-2 space-y-2">
-                    <Label htmlFor="city">City</Label>
+                    <Label htmlFor="city" className={validationErrors.city ? "text-destructive" : ""}>
+                      City {validationErrors.city && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="city" 
                       name="city"
                       value={shippingInfo.city}
                       onChange={handleShippingChange}
+                      className={validationErrors.city ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.city && (
+                      <p className="text-destructive text-sm">{validationErrors.city}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state" className={validationErrors.state ? "text-destructive" : ""}>
+                      State {validationErrors.state && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="state" 
                       name="state"
                       value={shippingInfo.state}
                       onChange={handleShippingChange}
+                      className={validationErrors.state ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.state && (
+                      <p className="text-destructive text-sm">{validationErrors.state}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="zipCode">ZIP Code</Label>
+                    <Label htmlFor="zipCode" className={validationErrors.zipCode ? "text-destructive" : ""}>
+                      ZIP Code {validationErrors.zipCode && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input 
                       id="zipCode" 
                       name="zipCode"
                       value={shippingInfo.zipCode}
                       onChange={handleShippingChange}
+                      className={validationErrors.zipCode ? "border-destructive" : ""}
                       required
                     />
+                    {validationErrors.zipCode && (
+                      <p className="text-destructive text-sm">{validationErrors.zipCode}</p>
+                    )}
                   </div>
                 </div>
 
@@ -495,50 +642,74 @@ export default function Checkout() {
                 {paymentMethod === "card" && (
                   <div className="pt-4 space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="cardName">Name on Card</Label>
+                      <Label htmlFor="cardName" className={validationErrors.cardName ? "text-destructive" : ""}>
+                        Name on Card {validationErrors.cardName && <span className="text-destructive">*</span>}
+                      </Label>
                       <Input 
                         id="cardName" 
                         name="cardName"
                         value={paymentInfo.cardName}
                         onChange={handlePaymentChange}
+                        className={validationErrors.cardName ? "border-destructive" : ""}
                         required
                       />
+                      {validationErrors.cardName && (
+                        <p className="text-destructive text-sm">{validationErrors.cardName}</p>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
+                      <Label htmlFor="cardNumber" className={validationErrors.cardNumber ? "text-destructive" : ""}>
+                        Card Number {validationErrors.cardNumber && <span className="text-destructive">*</span>}
+                      </Label>
                       <Input 
                         id="cardNumber" 
                         name="cardNumber"
                         placeholder="1234 5678 9012 3456"
                         value={paymentInfo.cardNumber}
                         onChange={handlePaymentChange}
+                        className={validationErrors.cardNumber ? "border-destructive" : ""}
                         required
                       />
+                      {validationErrors.cardNumber && (
+                        <p className="text-destructive text-sm">{validationErrors.cardNumber}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                        <Label htmlFor="expiryDate" className={validationErrors.expiryDate ? "text-destructive" : ""}>
+                          Expiry Date {validationErrors.expiryDate && <span className="text-destructive">*</span>}
+                        </Label>
                         <Input 
                           id="expiryDate" 
                           name="expiryDate"
                           placeholder="MM/YY"
                           value={paymentInfo.expiryDate}
                           onChange={handlePaymentChange}
+                          className={validationErrors.expiryDate ? "border-destructive" : ""}
                           required
                         />
+                        {validationErrors.expiryDate && (
+                          <p className="text-destructive text-sm">{validationErrors.expiryDate}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
+                        <Label htmlFor="cvv" className={validationErrors.cvv ? "text-destructive" : ""}>
+                          CVV {validationErrors.cvv && <span className="text-destructive">*</span>}
+                        </Label>
                         <Input 
                           id="cvv" 
                           name="cvv"
                           placeholder="123"
                           value={paymentInfo.cvv}
                           onChange={handlePaymentChange}
+                          className={validationErrors.cvv ? "border-destructive" : ""}
                           required
                         />
+                        {validationErrors.cvv && (
+                          <p className="text-destructive text-sm">{validationErrors.cvv}</p>
+                        )}
                       </div>
                     </div>
 
@@ -606,7 +777,7 @@ export default function Checkout() {
                   <span>${orderSummary.total.toFixed(2)}</span>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-2">
                 <Button
                   className="w-full"
                   size="lg"
@@ -615,11 +786,21 @@ export default function Checkout() {
                 >
                   {isLoading ? "Processing..." : "Place Order"}
                 </Button>
+                {Object.keys(validationErrors).length > 0 && (
+                  <div className="flex items-center justify-center w-full text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Please fix the errors in the form
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  By placing your order, you agree to our Terms of Service and Privacy Policy
+                </p>
               </CardFooter>
             </Card>
           </div>
         </div>
       </div>
+      <Toaster />
     </div>
   );
 }

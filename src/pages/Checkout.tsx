@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -11,11 +12,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, Check, Truck, Box, MapPin, Clock, AlertCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Check, Truck, Box, MapPin, Clock, AlertCircle, Smartphone } from "lucide-react";
 import { getCartItems, clearCart, CartItem } from "@/lib/cart";
-import { processPayment, validatePaymentInfo } from "@/services/paymentService";
+import { processPayment, validatePaymentInfo, createRazorpayOrder } from "@/services/paymentService";
 import { createOrderAPI } from "@/services/apiService";
 import { Toaster } from "@/components/ui/toaster";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ export default function Checkout() {
     city: "",
     state: "",
     zipCode: "",
+    country: "IN", // Default to India
     saveAddress: false
   });
 
@@ -47,7 +50,10 @@ export default function Checkout() {
     cardNumber: "",
     expiryDate: "",
     cvv: "",
-    saveCard: false
+    saveCard: false,
+    paymentMethod: "card",
+    upiId: "",
+    bankName: ""
   });
 
   // Load cart items from localStorage on mount
@@ -113,6 +119,40 @@ export default function Checkout() {
     }
   };
 
+  const handlePaymentMethodChange = (value: string) => {
+    setPaymentMethod(value);
+    setPaymentInfo(prev => ({
+      ...prev,
+      paymentMethod: value
+    }));
+    
+    // Clear validation errors for the previous payment method
+    setValidationErrors({});
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === 'country') {
+      setShippingInfo(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      setPaymentInfo(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     
@@ -130,12 +170,11 @@ export default function Checkout() {
     if (!shippingInfo.state) errors.state = "State is required";
     if (!shippingInfo.zipCode) errors.zipCode = "ZIP code is required";
     
-    // Validate payment info if paying by card
-    if (paymentMethod === "card") {
-      const paymentValidation = validatePaymentInfo(paymentInfo);
-      if (!paymentValidation.valid && paymentValidation.errors) {
-        Object.assign(errors, paymentValidation.errors);
-      }
+    // Validate payment info based on payment method
+    paymentInfo.paymentMethod = paymentMethod;
+    const paymentValidation = validatePaymentInfo(paymentInfo);
+    if (!paymentValidation.valid && paymentValidation.errors) {
+      Object.assign(errors, paymentValidation.errors);
     }
     
     setValidationErrors(errors);
@@ -155,50 +194,66 @@ export default function Checkout() {
     setIsLoading(true);
     
     try {
-      // Process payment
-      const paymentResult = await processPayment(
-        cartItems,
-        shippingInfo,
-        paymentInfo,
-        orderSummary.total
-      );
-      
-      if (!paymentResult.success) {
-        toast({
-          title: "Payment failed",
-          description: paymentResult.error || "There was a problem processing your payment. Please try again.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
+      // For Indian payments and UPI/Wallets/Net Banking, use Razorpay
+      if (shippingInfo.country === 'IN' && ['upi', 'netbanking', 'wallet'].includes(paymentMethod)) {
+        const razorpayResult = await createRazorpayOrder(
+          cartItems,
+          shippingInfo,
+          orderSummary.total
+        );
+        
+        if (!razorpayResult.success) {
+          toast({
+            title: "Payment initiation failed",
+            description: razorpayResult.error || "There was a problem initiating your payment. Please try again.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // If we have a session URL, redirect to Razorpay
+        if (razorpayResult.sessionUrl) {
+          window.location.href = razorpayResult.sessionUrl;
+          return;
+        }
+        
+        // Set the order number from the Razorpay result
+        setOrderNumber(razorpayResult.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`);
+        
+      } else {
+        // Use regular card processing for other countries or card payments
+        const paymentResult = await processPayment(
+          cartItems,
+          shippingInfo,
+          paymentInfo,
+          orderSummary.total
+        );
+        
+        if (!paymentResult.success) {
+          toast({
+            title: "Payment failed",
+            description: paymentResult.error || "There was a problem processing your payment. Please try again.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Check if we should redirect to external payment page
+        if (paymentResult.sessionUrl) {
+          window.location.href = paymentResult.sessionUrl;
+          return;
+        }
+        
+        // Set order number from payment result
+        setOrderNumber(paymentResult.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`);
       }
-      
-      // Set order number from payment result
-      setOrderNumber(paymentResult.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`);
       
       // Clear cart after successful order
       clearCart();
       
-      // Optional: Create order in database
-      try {
-        // This would typically send the order to your backend API
-        // await createOrderAPI({
-        //   orderId: paymentResult.orderId,
-        //   customer: {
-        //     firstName: shippingInfo.firstName,
-        //     lastName: shippingInfo.lastName,
-        //     email: shippingInfo.email,
-        //     phone: shippingInfo.phone,
-        //     address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} ${shippingInfo.zipCode}`
-        //   },
-        //   items: cartItems,
-        //   total: orderSummary.total,
-        //   status: 'processing'
-        // });
-      } catch (error) {
-        console.error("Error saving order:", error);
-        // We don't want to stop the checkout process if this fails
-      }
+      // Optional: Create order in database...
       
       setIsLoading(false);
       setOrderComplete(true);
@@ -583,6 +638,25 @@ export default function Checkout() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Select 
+                    value={shippingInfo.country} 
+                    onValueChange={(value) => handleSelectChange('country', value)}
+                  >
+                    <SelectTrigger id="country">
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IN">India</SelectItem>
+                      <SelectItem value="US">United States</SelectItem>
+                      <SelectItem value="CA">Canada</SelectItem>
+                      <SelectItem value="UK">United Kingdom</SelectItem>
+                      <SelectItem value="AU">Australia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex items-center space-x-2 pt-2">
                   <Checkbox 
                     id="saveAddress" 
@@ -613,7 +687,7 @@ export default function Checkout() {
               <CardContent className="space-y-4">
                 <RadioGroup 
                   value={paymentMethod} 
-                  onValueChange={setPaymentMethod}
+                  onValueChange={handlePaymentMethodChange}
                   className="space-y-3"
                 >
                   <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted">
@@ -625,6 +699,46 @@ export default function Checkout() {
                       </div>
                     </Label>
                   </div>
+                  
+                  {shippingInfo.country === 'IN' && (
+                    <>
+                      <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted">
+                        <RadioGroupItem value="upi" id="payment-upi" />
+                        <Label htmlFor="payment-upi" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <Smartphone className="h-5 w-5" />
+                            <span>UPI</span>
+                          </div>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted">
+                        <RadioGroupItem value="netbanking" id="payment-netbanking" />
+                        <Label htmlFor="payment-netbanking" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm7 8H7v2h4v2h2v-2h4v-2h-4V9h2V7h-2v2h-2v2z" />
+                            </svg>
+                            <span>Net Banking</span>
+                          </div>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted">
+                        <RadioGroupItem value="wallet" id="payment-wallet" />
+                        <Label htmlFor="payment-wallet" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M16 12h2v4h-2z" />
+                              <path d="M20 7V5c0-1.103-.897-2-2-2H5C3.346 3 2 4.346 2 6v12c0 1.654 1.346 3 3 3h14c1.103 0 2-.897 2-2v-2h-2v2H5c-.551 0-1-.449-1-1V6c0-.551.449-1 1-1h13v2h2z" />
+                              <path d="M20 9H9c-1.103 0-2 .897-2 2v6c0 1.103.897 2 2 2h11c1.103 0 2-.897 2-2v-6c0-1.103-.897-2-2-2zM9 17v-6h11l.002 6H9z" />
+                            </svg>
+                            <span>Wallets (Paytm, PhonePe, etc.)</span>
+                          </div>
+                        </Label>
+                      </div>
+                    </>
+                  )}
                   
                   <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted opacity-50">
                     <RadioGroupItem value="paypal" id="payment-paypal" disabled />
@@ -731,6 +845,78 @@ export default function Checkout() {
                     </div>
                   </div>
                 )}
+
+                {paymentMethod === "upi" && (
+                  <div className="pt-4 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="upiId" className={validationErrors.upiId ? "text-destructive" : ""}>
+                        UPI ID {validationErrors.upiId && <span className="text-destructive">*</span>}
+                      </Label>
+                      <Input 
+                        id="upiId" 
+                        name="upiId"
+                        placeholder="yourname@upi"
+                        value={paymentInfo.upiId}
+                        onChange={handlePaymentChange}
+                        className={validationErrors.upiId ? "border-destructive" : ""}
+                        required
+                      />
+                      {validationErrors.upiId && (
+                        <p className="text-destructive text-sm">{validationErrors.upiId}</p>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You'll receive a payment request on your UPI app.
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === "netbanking" && (
+                  <div className="pt-4 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bankName" className={validationErrors.bankName ? "text-destructive" : ""}>
+                        Select Bank {validationErrors.bankName && <span className="text-destructive">*</span>}
+                      </Label>
+                      <Select 
+                        value={paymentInfo.bankName} 
+                        onValueChange={(value) => handleSelectChange('bankName', value)}
+                      >
+                        <SelectTrigger id="bankName" className={validationErrors.bankName ? "border-destructive" : ""}>
+                          <SelectValue placeholder="Select your bank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sbi">State Bank of India</SelectItem>
+                          <SelectItem value="hdfc">HDFC Bank</SelectItem>
+                          <SelectItem value="icici">ICICI Bank</SelectItem>
+                          <SelectItem value="axis">Axis Bank</SelectItem>
+                          <SelectItem value="kotak">Kotak Mahindra Bank</SelectItem>
+                          <SelectItem value="pnb">Punjab National Bank</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {validationErrors.bankName && (
+                        <p className="text-destructive text-sm">{validationErrors.bankName}</p>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You will be redirected to your bank's website to complete the payment.
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === "wallet" && (
+                  <div className="pt-4 space-y-4">
+                    <p className="text-sm">
+                      Choose your preferred wallet on the payment page. We support:
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <div className="border rounded p-2 px-3 text-sm">Paytm</div>
+                      <div className="border rounded p-2 px-3 text-sm">PhonePe</div>
+                      <div className="border rounded p-2 px-3 text-sm">Google Pay</div>
+                      <div className="border rounded p-2 px-3 text-sm">Amazon Pay</div>
+                      <div className="border rounded p-2 px-3 text-sm">MobiKwik</div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -747,7 +933,7 @@ export default function Checkout() {
                     <span className="text-sm">
                       {item.quantity}x {item.name}
                     </span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
                 
@@ -756,16 +942,16 @@ export default function Checkout() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${orderSummary.subtotal.toFixed(2)}</span>
+                    <span>₹{orderSummary.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>${orderSummary.shipping.toFixed(2)}</span>
+                    <span>₹{orderSummary.shipping.toFixed(2)}</span>
                   </div>
                   {orderSummary.discount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span>
-                      <span>-${orderSummary.discount.toFixed(2)}</span>
+                      <span>-₹{orderSummary.discount.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -774,7 +960,7 @@ export default function Checkout() {
                 
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${orderSummary.total.toFixed(2)}</span>
+                  <span>₹{orderSummary.total.toFixed(2)}</span>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-2">

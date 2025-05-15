@@ -1,4 +1,3 @@
-
 import { CartItem } from "@/lib/cart";
 
 // Payment processing service
@@ -7,6 +6,9 @@ interface PaymentDetails {
   cardNumber: string;
   expiryDate: string;
   cvv: string;
+  paymentMethod?: string; // Added to support different payment methods
+  upiId?: string;         // For UPI payments
+  bankName?: string;      // For Net Banking
 }
 
 interface ShippingInfo {
@@ -18,6 +20,7 @@ interface ShippingInfo {
   city: string;
   state: string;
   zipCode: string;
+  country: string; // Added country field
 }
 
 interface PaymentResult {
@@ -33,6 +36,11 @@ const getStripePublishableKey = () => {
   return import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder';
 };
 
+// Get the Razorpay key from environment variables (for India-specific payments)
+const getRazorpayKey = () => {
+  return import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_placeholder';
+};
+
 // Check if we're in production mode to determine if we should use the live API
 const isProduction = () => {
   return import.meta.env.VITE_USE_PRODUCTION_API === 'true';
@@ -46,75 +54,137 @@ export async function processPayment(
   total: number
 ): Promise<PaymentResult> {
   // Simple validation
-  if (!paymentInfo.cardNumber || !paymentInfo.expiryDate || !paymentInfo.cvv) {
+  if (!paymentInfo.paymentMethod) {
+    return {
+      success: false,
+      error: "Please select a payment method"
+    };
+  }
+  
+  // For card payments
+  if (paymentInfo.paymentMethod === 'card' && 
+      (!paymentInfo.cardNumber || !paymentInfo.expiryDate || !paymentInfo.cvv)) {
     return {
       success: false,
       error: "Invalid payment information"
     };
   }
   
+  // For UPI payments
+  if (paymentInfo.paymentMethod === 'upi' && !paymentInfo.upiId) {
+    return {
+      success: false,
+      error: "Invalid UPI ID"
+    };
+  }
+  
   try {
     if (isProduction()) {
-      // In production, we create a payment intent on our server
+      // In production, determine which payment gateway to use based on country/method
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       
-      const response = await fetch(`${apiUrl}/create-payment-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: items.map(item => ({ id: item.id, quantity: item.quantity })),
-          shipping: {
-            name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
-            address: {
-              line1: shippingInfo.address,
-              city: shippingInfo.city,
-              state: shippingInfo.state,
-              postal_code: shippingInfo.zipCode,
-              country: 'US',
-            },
-            email: shippingInfo.email,
-            phone: shippingInfo.phone,
+      // Use Razorpay for India-specific payment methods
+      if (shippingInfo.country === 'IN' || 
+          ['upi', 'netbanking', 'wallet', 'rupay'].includes(paymentInfo.paymentMethod)) {
+        
+        // Create Razorpay order
+        const response = await fetch(`${apiUrl}/create-razorpay-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          amount: Math.round(total * 100), // Convert to cents
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create payment intent');
-      }
-      
-      const data = await response.json();
-      
-      // For Stripe Elements or Checkout integration, return the session URL
-      if (data.sessionUrl) {
+          body: JSON.stringify({
+            amount: Math.round(total * 100), // Convert to paise
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`,
+            payment_capture: 1,
+            notes: {
+              shipping_address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}`,
+              shipping_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            }
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create Razorpay order');
+        }
+        
+        const data = await response.json();
+        
         return {
           success: true,
-          sessionUrl: data.sessionUrl,
+          orderId: data.orderId,
+          sessionUrl: data.paymentUrl // For redirect to Razorpay checkout
+        };
+      } else {
+        // Use Stripe for international payments
+        const response = await fetch(`${apiUrl}/create-payment-intent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            items: items.map(item => ({ id: item.id, quantity: item.quantity })),
+            shipping: {
+              name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+              address: {
+                line1: shippingInfo.address,
+                city: shippingInfo.city,
+                state: shippingInfo.state,
+                postal_code: shippingInfo.zipCode,
+                country: shippingInfo.country || 'US',
+              },
+              email: shippingInfo.email,
+              phone: shippingInfo.phone,
+            },
+            amount: Math.round(total * 100), // Convert to cents
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create payment intent');
+        }
+        
+        const data = await response.json();
+        
+        // For Stripe Elements or Checkout integration, return the session URL
+        if (data.sessionUrl) {
+          return {
+            success: true,
+            sessionUrl: data.sessionUrl,
+          };
+        }
+        
+        // For direct integration using client-side confirmations
+        return {
+          success: true,
+          orderId: data.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`,
+          redirectUrl: `/order-confirmation/${data.orderId || 'success'}`
         };
       }
-      
-      // For direct integration using client-side confirmations
-      return {
-        success: true,
-        orderId: data.orderId || `FSD-${Math.floor(100000 + Math.random() * 900000)}`,
-        redirectUrl: `/order-confirmation/${data.orderId || 'success'}`
-      };
     } else {
       // In development, we'll simulate a successful payment with a small delay
       console.log("DEV MODE: Simulating payment processing for order:", {
         items,
         shipping: shippingInfo,
-        amount: total
+        amount: total,
+        paymentMethod: paymentInfo.paymentMethod
       });
       
-      // For testing purposes, card numbers ending with "0000" will fail
-      if (paymentInfo.cardNumber.endsWith("0000")) {
+      // For testing purposes, specific test cases to simulate various scenarios
+      if (paymentInfo.cardNumber?.endsWith("0000")) {
         return {
           success: false,
           error: "Payment declined. Please try a different payment method."
+        };
+      }
+      
+      if (paymentInfo.upiId === "failure@upi") {
+        return {
+          success: false,
+          error: "UPI payment failed. Please check your UPI ID and try again."
         };
       }
       
@@ -139,45 +209,131 @@ export async function processPayment(
   }
 }
 
-// Validate payment info
+// Validate payment info based on payment method
 export function validatePaymentInfo(paymentInfo: PaymentDetails): { valid: boolean, errors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   
-  if (!paymentInfo.cardName) {
-    errors.cardName = "Name on card is required";
+  if (!paymentInfo.paymentMethod) {
+    errors.paymentMethod = "Please select a payment method";
+    return { valid: false, errors };
   }
   
-  if (!paymentInfo.cardNumber) {
-    errors.cardNumber = "Card number is required";
-  } else if (!/^\d{15,16}$/.test(paymentInfo.cardNumber.replace(/\s/g, ''))) {
-    errors.cardNumber = "Invalid card number";
-  }
-  
-  if (!paymentInfo.expiryDate) {
-    errors.expiryDate = "Expiry date is required";
-  } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(paymentInfo.expiryDate)) {
-    errors.expiryDate = "Invalid expiry date (MM/YY)";
-  } else {
-    // Check if card is expired
-    const [month, year] = paymentInfo.expiryDate.split('/');
-    const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
-    const now = new Date();
+  // Validate credit/debit card details
+  if (paymentInfo.paymentMethod === 'card') {
+    if (!paymentInfo.cardName) {
+      errors.cardName = "Name on card is required";
+    }
     
-    if (expiryDate < now) {
-      errors.expiryDate = "Card is expired";
+    if (!paymentInfo.cardNumber) {
+      errors.cardNumber = "Card number is required";
+    } else if (!/^\d{15,16}$/.test(paymentInfo.cardNumber.replace(/\s/g, ''))) {
+      errors.cardNumber = "Invalid card number";
+    }
+    
+    if (!paymentInfo.expiryDate) {
+      errors.expiryDate = "Expiry date is required";
+    } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(paymentInfo.expiryDate)) {
+      errors.expiryDate = "Invalid expiry date (MM/YY)";
+    } else {
+      // Check if card is expired
+      const [month, year] = paymentInfo.expiryDate.split('/');
+      const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
+      const now = new Date();
+      
+      if (expiryDate < now) {
+        errors.expiryDate = "Card is expired";
+      }
+    }
+    
+    if (!paymentInfo.cvv) {
+      errors.cvv = "Security code is required";
+    } else if (!/^\d{3,4}$/.test(paymentInfo.cvv)) {
+      errors.cvv = "Invalid security code";
     }
   }
   
-  if (!paymentInfo.cvv) {
-    errors.cvv = "Security code is required";
-  } else if (!/^\d{3,4}$/.test(paymentInfo.cvv)) {
-    errors.cvv = "Invalid security code";
+  // Validate UPI details
+  if (paymentInfo.paymentMethod === 'upi') {
+    if (!paymentInfo.upiId) {
+      errors.upiId = "UPI ID is required";
+    } else if (!/^[a-zA-Z0-9.-]{2,256}@[a-zA-Z][a-zA-Z]{2,64}$/.test(paymentInfo.upiId)) {
+      errors.upiId = "Invalid UPI ID format";
+    }
+  }
+  
+  // Validate Net Banking details
+  if (paymentInfo.paymentMethod === 'netbanking' && !paymentInfo.bankName) {
+    errors.bankName = "Please select a bank";
   }
   
   return {
     valid: Object.keys(errors).length === 0,
     errors: Object.keys(errors).length > 0 ? errors : undefined
   };
+}
+
+// For Razorpay integration for Indian payments
+export async function createRazorpayOrder(items: CartItem[], shippingInfo: ShippingInfo, total: number): Promise<PaymentResult> {
+  try {
+    if (isProduction()) {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${apiUrl}/create-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Math.round(total * 100), // in paise
+          currency: "INR",
+          receipt: `receipt_${Date.now()}`,
+          notes: {
+            items: items.map(item => item.name).join(", "),
+            customer_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
+            customer_email: shippingInfo.email
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create Razorpay order');
+      }
+      
+      const data = await response.json();
+      
+      return {
+        success: true,
+        orderId: data.orderId,
+        sessionUrl: data.paymentUrl
+      };
+    } else {
+      // In development, simulate Razorpay order creation
+      console.log("DEV MODE: Simulating Razorpay order creation for:", {
+        items,
+        shipping: shippingInfo,
+        amount: Math.round(total * 100) // in paise
+      });
+      
+      // Simulate API call with a small delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate a random order ID
+      const orderId = `RZP-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      return {
+        success: true,
+        orderId,
+        redirectUrl: `/order-confirmation/${orderId}`
+      };
+    }
+  } catch (error) {
+    console.error("Razorpay order creation error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred while creating your order. Please try again."
+    };
+  }
 }
 
 // For direct Stripe checkout integration (optional)
@@ -287,6 +443,52 @@ export async function verifyPayment(sessionId: string): Promise<{ verified: bool
     }
   } catch (error) {
     console.error("Payment verification error:", error);
+    return { verified: false };
+  }
+}
+
+// Verify Razorpay payment
+export async function verifyRazorpayPayment(
+  orderId: string, 
+  paymentId: string, 
+  signature: string
+): Promise<{ verified: boolean, orderId?: string }> {
+  try {
+    if (isProduction()) {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${apiUrl}/verify-razorpay-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          orderId, 
+          paymentId, 
+          signature 
+        }),
+      });
+      
+      if (!response.ok) {
+        return { verified: false };
+      }
+      
+      const data = await response.json();
+      return {
+        verified: data.verified,
+        orderId: data.orderId,
+      };
+    } else {
+      // In development, simulate verification
+      console.log(`DEV MODE: Simulating Razorpay payment verification for order ${orderId}`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        verified: true,
+        orderId: `FSD-${Math.floor(100000 + Math.random() * 900000)}`
+      };
+    }
+  } catch (error) {
+    console.error("Razorpay payment verification error:", error);
     return { verified: false };
   }
 }

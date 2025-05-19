@@ -5,6 +5,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface Product {
   id: string;
@@ -19,9 +22,46 @@ interface Product {
 
 interface ProductItemProps {
   product: Product;
+  onDelete?: (id: string) => void;
 }
 
-export function ProductItem({ product }: ProductItemProps) {
+export function ProductItem({ product, onDelete }: ProductItemProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleEdit = () => {
+    navigate(`/products/edit/${product.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) {
+      toast({
+        title: "Action not available",
+        description: "Delete functionality is not available in this view",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await onDelete(product.id);
+      toast({
+        title: "Product deleted",
+        description: `${product.name} has been deleted successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video w-full relative overflow-hidden">
@@ -51,13 +91,19 @@ export function ProductItem({ product }: ProductItemProps) {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleEdit}>
           <Edit className="h-4 w-4 mr-2" />
           Edit
         </Button>
-        <Button variant="outline" size="sm" className="text-red-500 hover:bg-red-50">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-red-500 hover:bg-red-50"
+          onClick={handleDelete}
+          disabled={isDeleting}
+        >
           <Trash2 className="h-4 w-4 mr-2" />
-          Delete
+          {isDeleting ? "Deleting..." : "Delete"}
         </Button>
       </CardFooter>
     </Card>

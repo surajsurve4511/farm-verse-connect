@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +15,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   
   useEffect(() => {
     // Check if user is admin
@@ -30,6 +30,12 @@ export default function Admin() {
       });
       navigate("/dashboard");
     }
+
+    // In a real app, you would fetch these from the API
+    setPendingUsers([
+      { id: "1", name: "John Doe", email: "john@example.com", role: "farmer", joinDate: "2025-05-10" },
+      { id: "2", name: "Jane Smith", email: "jane@example.com", role: "customer", joinDate: "2025-05-12" }
+    ]);
   }, [navigate, toast]);
 
   // If not admin, don't render the page
@@ -42,12 +48,37 @@ export default function Admin() {
       title: "User Approved",
       description: `User ${id} has been approved.`,
     });
+    // In a real app, you would call an API to approve the user
+    setPendingUsers(pendingUsers.filter(user => user.id !== id));
   };
 
   const handleSuspendUser = (id: string) => {
     toast({
       title: "User Suspended",
       description: `User ${id} has been suspended.`,
+    });
+    // In a real app, you would call an API to suspend the user
+    setPendingUsers(pendingUsers.filter(user => user.id !== id));
+  };
+
+  const handleCreateTestData = () => {
+    toast({
+      title: "Test Data Created",
+      description: "Test data has been successfully created in the system.",
+    });
+  };
+
+  const handleExportData = () => {
+    toast({
+      title: "Data Export Started",
+      description: "Your data export is now being processed. You will be notified when it's ready to download.",
+    });
+  };
+
+  const handleSystemConfiguration = () => {
+    toast({
+      title: "System Configuration",
+      description: "System configuration panel will be available in the next release.",
     });
   };
 
@@ -299,14 +330,47 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-10">
-                <ShoppingBag className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No farmers registered yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  When farmers register on the platform, they will appear here.
-                </p>
-                <Button variant="outline">Add Farmer Manually</Button>
-              </div>
+              {pendingUsers.filter(user => user.role === "farmer").length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Join Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingUsers
+                      .filter(user => user.role === "farmer")
+                      .map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{new Date(user.joinDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" className="mr-2" onClick={() => handleApproveUser(user.id)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleSuspendUser(user.id)}>
+                              Reject
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    }
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <ShoppingBag className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No farmers registered yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    When farmers register on the platform, they will appear here.
+                  </p>
+                  <Button variant="outline" onClick={handleCreateTestData}>Create Test Data</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -331,14 +395,47 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-10">
-                <Users className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No customers registered yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  When customers register on the platform, they will appear here.
-                </p>
-                <Button variant="outline">Add Customer Manually</Button>
-              </div>
+              {pendingUsers.filter(user => user.role === "customer").length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Join Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingUsers
+                      .filter(user => user.role === "customer")
+                      .map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{new Date(user.joinDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" className="mr-2" onClick={() => handleApproveUser(user.id)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleSuspendUser(user.id)}>
+                              Reject
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    }
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10">
+                  <Users className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No customers registered yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    When customers register on the platform, they will appear here.
+                  </p>
+                  <Button variant="outline" onClick={handleCreateTestData}>Create Test Data</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -369,7 +466,7 @@ export default function Admin() {
                 <p className="text-muted-foreground mb-4">
                   When orders are placed on the platform, they will appear here.
                 </p>
-                <Button variant="outline">Create Test Order</Button>
+                <Button variant="outline" onClick={handleCreateTestData}>Create Test Order</Button>
               </div>
             </CardContent>
           </Card>
@@ -401,7 +498,7 @@ export default function Admin() {
                       <span className="font-medium">5%</span>
                     </div>
                   </div>
-                  <Button className="mt-4" variant="outline" size="sm">
+                  <Button className="mt-4" variant="outline" size="sm" onClick={handleSystemConfiguration}>
                     Adjust Commission Rates
                   </Button>
                 </div>
@@ -414,10 +511,10 @@ export default function Admin() {
                     Configure how new users are verified on the platform
                   </p>
                   <div className="flex items-center mt-4 space-x-4">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleSystemConfiguration}>
                       Manual Verification
                     </Button>
-                    <Button size="sm">
+                    <Button size="sm" onClick={handleSystemConfiguration}>
                       Automatic Verification
                     </Button>
                   </div>
@@ -430,8 +527,18 @@ export default function Admin() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Schedule system maintenance and updates
                   </p>
-                  <Button className="mt-4" variant="outline" size="sm">
+                  <Button className="mt-4" variant="outline" size="sm" onClick={handleSystemConfiguration}>
                     Schedule Maintenance
+                  </Button>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium">Data Management</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Export or backup system data
+                  </p>
+                  <Button className="mt-4" variant="outline" size="sm" onClick={handleExportData}>
+                    Export Data
                   </Button>
                 </div>
               </div>

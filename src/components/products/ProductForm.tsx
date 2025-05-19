@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 // Form schema with validation
 const productFormSchema = z.object({
@@ -30,11 +31,19 @@ const productFormSchema = z.object({
   description: z.string().optional(),
 });
 
-export function ProductForm({ onCancel }: { onCancel: () => void }) {
+type ProductFormProps = {
+  onCancel: () => void;
+  onSubmit?: (data: z.infer<typeof productFormSchema>) => void;
+  initialData?: z.infer<typeof productFormSchema>;
+};
+
+export function ProductForm({ onCancel, onSubmit, initialData }: ProductFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Initialize the form
   const form = useForm<z.infer<typeof productFormSchema>>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       name: "",
       price: 0,
       unit: "kg",
@@ -46,23 +55,40 @@ export function ProductForm({ onCancel }: { onCancel: () => void }) {
   });
 
   // Form submission handler
-  function onSubmit(values: z.infer<typeof productFormSchema>) {
-    // This would normally send data to an API
-    console.log(values);
+  function handleSubmit(values: z.infer<typeof productFormSchema>) {
+    setIsSubmitting(true);
     
-    toast({
-      title: "Product Added",
-      description: `${values.name} has been added to your inventory.`,
-    });
-    
-    // Reset form and close
-    form.reset();
-    onCancel();
+    try {
+      // Call the onSubmit callback if provided, otherwise use default behavior
+      if (onSubmit) {
+        onSubmit(values);
+      } else {
+        // This would normally send data to an API
+        console.log(values);
+        
+        toast({
+          title: initialData ? "Product Updated" : "Product Added",
+          description: `${values.name} has been ${initialData ? "updated" : "added"} to your inventory.`,
+        });
+        
+        // Reset form and close
+        form.reset();
+        onCancel();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${initialData ? "update" : "add"} product. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-6">
             <FormField
@@ -209,11 +235,11 @@ export function ProductForm({ onCancel }: { onCancel: () => void }) {
         </div>
         
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit">
-            Save Product
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : initialData ? "Update Product" : "Save Product"}
           </Button>
         </div>
       </form>

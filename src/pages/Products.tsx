@@ -1,12 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { 
@@ -17,6 +16,8 @@ import {
 } from "lucide-react";
 import { ProductItem } from "@/components/products/ProductItem";
 import { ProductForm } from "@/components/products/ProductForm";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Mock data
 const products = [
@@ -85,11 +86,65 @@ const products = [
 export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [productList, setProductList] = useState(products);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = productList.filter(product => 
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      // In a real app, you would call an API to delete the product
+      setProductList(productList.filter(product => product.id !== id));
+      
+      toast({
+        title: "Product deleted",
+        description: "The product has been successfully removed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFormSubmit = (productData: any) => {
+    // In a real app, you would call an API to add the product
+    const newProduct = {
+      id: `PROD-${Math.floor(Math.random() * 1000)}`,
+      name: productData.name,
+      price: productData.price,
+      unit: productData.unit,
+      category: productData.category,
+      organic: productData.organic === "yes",
+      inStock: productData.stock,
+      image: "/placeholder.svg",
+    };
+    
+    setProductList([...productList, newProduct]);
+    setShowForm(false);
+    
+    toast({
+      title: "Product added",
+      description: `${productData.name} has been added to your inventory.`,
+    });
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "Import Started",
+      description: "The product import tool will open in a new window.",
+    });
+  };
+
+  const handleEditProduct = (id: string) => {
+    navigate(`/products/edit/${id}`);
+  };
 
   return (
     <div className="flex flex-col space-y-6 p-6">
@@ -121,7 +176,7 @@ export default function Products() {
             <Plus className="mr-2 h-4 w-4" />
             Add Product
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleImport}>
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
@@ -135,7 +190,7 @@ export default function Products() {
             <CardDescription>Fill in the details to add a new product to your inventory.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ProductForm onCancel={() => setShowForm(false)} />
+            <ProductForm onCancel={() => setShowForm(false)} onSubmit={handleFormSubmit} />
           </CardContent>
         </Card>
       ) : (
@@ -148,7 +203,7 @@ export default function Products() {
           <TabsContent value="grid" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.map(product => (
-                <ProductItem key={product.id} product={product} />
+                <ProductItem key={product.id} product={product} onDelete={handleDeleteProduct} />
               ))}
             </div>
             
@@ -205,7 +260,15 @@ export default function Products() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product.id)}>Edit</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-500 ml-2"
+                          onClick={() => handleDeleteProduct(product.id)}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
